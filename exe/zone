@@ -154,16 +154,19 @@ class TimezoneSearch
   end
 end
 
+
 zone_callables = Hash.new do |hash, key|
-  hash[key] = ->(time) { 
+  hash[key] = (
     search = TimezoneSearch.new(key)
     if zone = search.execute
-      zone.to_local(time)
+      ->(time) {
+        zone.to_local(time)
+      }
     else
       $logger.warn "Error: Invalid time zone identifier '#{key}'."
       time
     end
-  }
+  )
 end
 
 zone_callables.merge!(
