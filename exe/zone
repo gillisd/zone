@@ -1,0 +1,255 @@
+#!/usr/bin/env ruby -r logger -r optparse -r tzinfo -r time -r date
+
+require 'logger'
+require 'optparse'
+require 'tzinfo'
+require 'time'
+require 'date'
+
+options = { delimiter: nil, strftime: nil, iso8601: false, pretty: false, headers: false, unix: false, index: 1, zone: nil, utc: false, local: false }
+parser = OptionParser.new do |parser|
+  parser.on '--index N', '-i N', Integer, 'Index of the field to convert (default: 1)'
+  parser.on '--delimiter PATTERN', '-d', 'Field delimiter (default: space)'
+  parser.on '--iso8601', 'Output in ISO 8601 (default: true)'
+  parser.on '--strftime FORMAT', '-f', 'Output format using strftime (default: none)'
+  parser.on '--pretty', 'Output in pretty format (e.g., "Jan 02 - 03:04 PM")'
+  parser.on '--unix', 'Output as Unix timestamp (default: false)'
+  parser.on '--zone TZ', 'Convert to time zone (default: local time zone)'
+  parser.on '--local', 'Convert to local time zone (alias for --zone local)'
+  parser.on '--utc', 'Convert to UTC time zone (alias for --zone UTC)'
+  parser.on '--headers', 'Skip the first line as headers'
+  parser.on '--verbose', '-v', 'Enable verbose/debug output'
+  parser.on '--help', '-h', 'Show this help message' do
+    puts parser
+    exit
+  end
+end
+
+parser.parse!(into: options)
+
+COLORS = {
+  reset: "\e[0m",
+  bold: "\e[1m",
+  cyan: "\e[36m",
+  yellow: "\e[33m",
+  red: "\e[31m",
+  gray: "\e[90m"
+}
+
+$logger = Logger.new($stderr).tap do |l|
+  l.formatter = ->(severity, _datetime, _progname, message) {
+    color = case severity
+    when "INFO"  then COLORS[:cyan]
+    when "WARN"  then COLORS[:yellow]
+    when "ERROR" then COLORS[:red]
+    else COLORS[:gray]
+    end
+    
+    prefix = case severity
+    when "INFO"  then "→"
+    when "WARN"  then "⚠"
+    when "ERROR" then "✗"
+    else "·"
+    end
+    
+    "#{color}#{prefix} #{message}#{COLORS[:reset]}\n"
+  }
+  l.level = options.delete(:verbose) ? Logger::INFO : Logger::WARN
+end
+
+format = (
+  case options
+  in { strftime: nil, iso8601: true, unix: false, pretty: false } then :iso8601
+  in { strftime: nil, iso8601: false, unix: true, pretty: false } then :unix
+  in { strftime: String, iso8601: false, unix: false, pretty: false } then :strftime
+  in { strftime: nil, iso8601: false, unix: false, pretty: true } then :pretty
+  in { strftime: nil, iso8601: false, unix: false, pretty: false } then  :iso8601
+  else
+    $logger.error 'Error: Only one of --strftime, --iso8601, or --unix can be specified.'
+    exit 1
+  end
+)
+
+zone = (
+  case options
+  in { utc: true, local: false, zone: nil } then 'utc'
+  in { utc: false, local: true, zone: nil } then 'local'
+  in { zone: nil, utc: false, local: false } then 'utc'
+  in { zone: String => z, utc: false, local: false } then z
+  else
+    $logger.error 'Error: Only one of --zone, --local, or --utc can be specified.'
+    exit 1
+  end
+)
+
+class TimezoneSearch
+  attr_reader :keyword, :debug
+
+  def self.all_zones
+    TZInfo::Timezone.all_identifiers
+  end
+
+  def initialize(
+    keyword, 
+    debug: false, 
+    logger: $logger || Logger.new($stderr)
+  )
+    @keyword = keyword
+    @debug = debug
+    @logger = logger
+  end
+
+  def execute
+    begin
+      TZInfo::Timezone.get(keyword)
+    rescue TZInfo::InvalidTimezoneIdentifier
+      search_wildcard
+    end
+  end
+
+  def us_wildcard
+    keyword
+    .gsub(/^(?:US)?\/?/, 'US/')
+    .gsub(/$/,'.*')
+    .then { Regexp.new(it, Regexp::IGNORECASE) }
+  end
+
+  def all_wildcard
+    Regexp.new(".*#{keyword}.*", Regexp::IGNORECASE)
+  end
+
+  def search_wildcard
+    case self.class.all_zones
+    in [*, ^(us_wildcard) => found_zone, *]
+    in [*, ^(all_wildcard) => found_zone, *]
+    else nil
+    end
+
+    return unless found_zone
+
+    TZInfo::Timezone.get(found_zone).tap do
+      @logger.info "Using time zone '#{found_zone}' matching pattern '#{@keyword}'."
+    end
+  end
+
+  private
+
+  def log(message)
+    warn message if @debug
+  end
+end
+
+zone_callables = Hash.new do |hash, key|
+  hash[key] = ->(time) { 
+    search = TimezoneSearch.new(key)
+    if zone = search.execute
+      zone.to_local(time)
+    else
+      $logger.warn "Error: Invalid time zone identifier '#{key}'."
+      time
+    end
+  }
+end
+
+zone_callables.merge!(
+  'utc' => ->(t) { t.utc },
+  'local' => ->(t) { t.localtime },
+  'UTC' => ->(t) { t.utc },
+)
+
+actual_index = options[:index] - 1
+zone_callable = zone_callables[zone]
+
+# Detect if args are timestamps (not filenames)
+timestamps = []
+if ARGV.any? && ARGV.all? { |arg| arg.match?(/^\d/) || arg.match?(/[A-Z][a-z]{2}/) || arg.match?(/:/) }
+  $logger.info "Treating arguments as timestamp strings."
+  timestamps = ARGV.dup
+  ARGV.clear  # Clear so ARGF will read from STDIN if piped
+end
+
+# Build input enumerable
+input = (
+  if timestamps.any?
+    timestamps.each
+  elsif ARGV.any? || !STDIN.tty?
+    ARGF.each_line(chomp: true)
+  else
+    [Time.now.to_s].each
+  end
+)
+
+input.each do |line|
+  case [options, $.]
+  in { headers: true }, 1 then next
+  in { delimiter: String => delimiter }
+  in { delimiter: nil }
+    $logger.info "Auto-detecting delimiter for line: #{line.inspect}"
+    options[:delimiter] = (
+      case line
+      in /,\s*/
+        $logger.info "Using comma with whitespace as delimiter."
+        /,\s*/
+      in /\t/
+        $logger.info "Using tab as delimiter."
+        "\t"
+      in /,/
+        $logger.info "Using comma as delimiter."
+        ','
+      else
+        $logger.info "Could not detect delimiter. Using whitespace."
+        /\s+/
+      end
+    )
+  else
+    ""
+  end
+
+  delimiter = options[:delimiter] || ""
+  
+  fields = (
+    case [line, delimiter]
+    in String, "" then [line]
+    in String, /^.+$/ then line.split(delimiter) 
+    else [line]
+    end
+   )
+
+  target = fields[actual_index]
+
+  time = (
+    begin
+      case target
+      in Time then target
+      in DateTime then target.to_time
+      in Date then target.to_time
+      in /^[0-9\.]+$/
+        Time.at(target.to_f)
+      else
+        DateTime.parse(target).to_time
+      end
+    rescue StandardError => e
+      $logger.warn "Warning: Could not parse time '#{target}'. Skipping line."
+      $logger.warn "  #{e.class}: #{e.message}"
+      next
+    end
+  )
+  
+  converted = zone_callable.call(time)
+  formatted = (
+    case format
+    in :pretty
+      if (Time.now - converted).abs > 30 * 24 * 60 * 60
+        converted.strftime("%b %d, %Y - %I:%M %p %Z")
+      else
+        converted.strftime("%b %d - %I:%M %p %Z")
+      end
+    in :strftime then converted.strftime(options[:strftime])
+    in :iso8601 then converted.iso8601
+    in :unix then converted.to_i
+    end
+  )
+
+  fields[actual_index] = formatted
+  puts fields.join(delimiter)
+end
