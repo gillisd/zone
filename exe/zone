@@ -8,30 +8,32 @@ require 'optparse'
 require 'tzinfo'
 require 'time'
 require 'date'
-require_relative '../lib/zone/version'
 
 options = { delimiter: nil, strftime: nil, iso8601: false, pretty: false, headers: false, unix: false, index: 1, zone: nil, utc: false, local: false }
 parser = OptionParser.new do |parser|
-  parser.on '--index N', '-i N', Integer, 'Index of the field to convert (default: 1)'
-  parser.on '--delimiter PATTERN', '-d', 'Field delimiter (default: space)'
+  parser.banner = "Usage: zone [options] [timestamps...]"
+  parser.separator ""
+  parser.separator "Output Formats:"
   parser.on '--iso8601', 'Output in ISO 8601 (default: true)'
   parser.on '--strftime FORMAT', '-f', 'Output format using strftime (default: none)'
   parser.on '--pretty', 'Output in pretty format (e.g., "Jan 02 - 03:04 PM")'
   parser.on '--unix', 'Output as Unix timestamp (default: false)'
+  
+  parser.separator ""
+  parser.separator "Timezones:"
   parser.on '--zone TZ', 'Convert to time zone (default: local time zone)'
   parser.on '--local', 'Convert to local time zone (alias for --zone local)'
   parser.on '--utc', 'Convert to UTC time zone (alias for --zone UTC)'
+  
+  parser.separator ""
+  parser.separator "Data Processing:"
+  parser.on '--index N', '-i N', Integer, 'Index of the field to convert (default: 1)'
+  parser.on '--delimiter PATTERN', '-d', 'Field delimiter (default: space)'
   parser.on '--headers', 'Skip the first line as headers'
+  
+  parser.separator ""
+  parser.separator "Other:"
   parser.on '--verbose', '-v', 'Enable verbose/debug output'
-  parser.on '--version', 'Display version information' do
-    puts <<~TXT
-    Zone #{Zone::VERSION}
-    (c) #{Date.today.year} David Gillis
-    License MIT
-    TXT
-
-    exit
-  end
   parser.on '--help', '-h', 'Show this help message' do
     puts parser
     exit
