@@ -1,57 +1,139 @@
 # Zone
 
-
-
-## Installation
-
-
-Install the gem and add to the application's Gemfile by executing:
+Timezone conversion and datetime formatting for the command line
 
 ```bash
-bundle add zone
+# Fuzzy timezone matching
+zone --zone tokyo 2025-11-05T02:40:32+00:00
+# => 2025-11-05T11:40:32+09:00
+
+# Process CSV timestamps
+cat data.csv | zone --index 3 --zone pacific --pretty
+# => customer,purchase_date,amount
+# => alice,42.00,Nov 04 - 06:40 PM PST
+
+# Make logs readable
+tail -f app.log | zone --pretty --zone local
+# => Nov 04 - 09:15 PM EST [ERROR] Database connection timeout
 ```
 
-If bundler is not being used to manage dependencies, install the gem by executing:
+## Installation
 
 ```bash
 gem install zone
 ```
 
+Or with Bundler:
+
+```bash
+bundle add zone
+```
+
 ## Usage
 
-**zone** can convert time-zones:
-```shell
-# uses a fuzzy search to match any time-zone keyword you input
+Convert timezones:
 
-zone --pretty --zone 'pacific' 2025-11-05T02:40:32+00:00
-
-# => Nov 04 - 06:40 PM PST
-
-
+```bash
+zone --zone 'New York' '2025-11-05T02:40:32+00:00'
+# => 2025-11-04T21:40:32-05:00
 ```
 
-**zone** can convert datetime formats:
-```shell
-zone --iso8601 --zone 'Europe' "Nov 04 - 06:42 PM PST"
+Change formats:
 
-# => 2025-11-05T03:42:00+01:00
+```bash
+zone --unix 'Nov 04 - 06:42 PM PST'
+# => 1730775720
 
-zone --zone Tokyo --strftime '%Y-%m-%d %-I:%M %p %Z' 'Nov 04 - 06:42 PM PST'
-
-# => 2025-11-05 11:42 AM JST
-
+zone --strftime '%Y-%m-%d %H:%M' '2025-11-05T02:40:32+00:00'
+# => 2025-11-05 02:40
 ```
 
-## Development
+Process structured data:
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+```bash
+# Convert column 2, auto-detect delimiter
+cat events.csv | zone --index 2 --zone UTC
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+# Skip header row
+zone --headers --delimiter '\t' < data.tsv
+```
+
+Multiple timestamps:
+
+```bash
+zone 1730772120 1730858520 1730944920 --zone tokyo --pretty
+# => Nov 05 - 11:42 AM JST
+# => Nov 06 - 11:42 AM JST
+# => Nov 07 - 11:42 AM JST
+```
+
+## Options
+
+**Output Formats**
+
+- `--iso8601` - ISO 8601 format (default)
+- `--unix` - Unix timestamp
+- `--pretty` - Human-readable (e.g., "Nov 04 - 06:40 PM PST")
+- `--strftime FORMAT` - Custom format
+
+**Timezones**
+
+- `--zone TZ` - Convert to timezone (fuzzy matching)
+- `--utc` - Convert to UTC
+- `--local` - Convert to local time
+
+**Data Processing**
+
+- `--index N` - Column to convert (default: 1)
+- `--delimiter PATTERN` - Field separator (auto-detected)
+- `--headers` - Skip first line
+
+**Other**
+
+- `--verbose` - Show debug output
+- `--help` - Show help
+
+## Examples
+
+Analyze logs across timezones:
+
+```bash
+grep "ERROR" app.log | zone --zone local --pretty
+```
+
+Convert trading data:
+
+```bash
+zone --zone 'New York' --strftime '%H:%M:%S' < trades.csv
+```
+
+Quick conversions:
+
+```bash
+zone --zone berlin "3pm PST"
+# => 2025-11-05T00:00:00+01:00
+
+zone --zone pacific now
+# => 2025-11-04T16:42:15-08:00
+```
+
+## Timezone Matching
+
+Zone uses fuzzy matching for timezone names:
+
+```bash
+zone --zone pacific     # => US/Pacific
+zone --zone tokyo       # => Asia/Tokyo  
+zone --zone europe      # => Europe/London (first match)
+zone --zone 'US/Eastern' # => US/Eastern (exact match)
+```
+
+Use `--verbose` to see which timezone was matched.
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/gillisd/zone.
+Bug reports and pull requests are welcome on [GitHub](https://github.com/gillisd/zone).
 
 ## License
 
-The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+[MIT License](https://opensource.org/licenses/MIT)
