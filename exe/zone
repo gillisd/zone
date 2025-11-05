@@ -8,6 +8,7 @@ require 'optparse'
 require 'tzinfo'
 require 'time'
 require 'date'
+require_relative '../lib/zone/version'
 
 options = { delimiter: nil, strftime: nil, iso8601: false, pretty: false, headers: false, unix: false, index: 1, zone: nil, utc: false, local: false }
 parser = OptionParser.new do |parser|
@@ -22,6 +23,15 @@ parser = OptionParser.new do |parser|
   parser.on '--utc', 'Convert to UTC time zone (alias for --zone UTC)'
   parser.on '--headers', 'Skip the first line as headers'
   parser.on '--verbose', '-v', 'Enable verbose/debug output'
+  parser.on '--version', 'Display version information' do
+    puts <<~TXT
+    Zone #{Zone::VERSION}
+    (c) #{Date.today.year} David Gillis
+    License MIT
+    TXT
+
+    exit
+  end
   parser.on '--help', '-h', 'Show this help message' do
     puts parser
     exit
