@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   spec.authors = ["David Gillis"]
   spec.email = ["david@flipmine.com"]
 
-  spec.summary = "An ergonomic CLI utility for quick time-zone conversion"
+  spec.summary = "An ergonomic CLI for quick time-zone conversion"
   spec.homepage = "https://github.com/gillisd/zone"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2.0"
