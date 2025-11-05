@@ -1,5 +1,8 @@
-#!/usr/bin/env ruby -r logger -r optparse -r tzinfo -r time -r date
+#!/usr/bin/env ruby
 
+# frozen_string_literal: true
+
+require 'rubygems'
 require 'logger'
 require 'optparse'
 require 'tzinfo'
