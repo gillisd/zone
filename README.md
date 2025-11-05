@@ -25,7 +25,7 @@ gem install zone
 
 zone --pretty --zone 'pacific' 2025-11-05T02:40:32+00:00
 
-=> Nov 04 - 06:40 PM PST
+# => Nov 04 - 06:40 PM PST
 
 
 ```
@@ -34,11 +34,11 @@ zone --pretty --zone 'pacific' 2025-11-05T02:40:32+00:00
 ```shell
 zone --iso8601 --zone 'Europe' "Nov 04 - 06:42 PM PST"
 
-=> 2025-11-05T03:42:00+01:00
+# => 2025-11-05T03:42:00+01:00
 
 zone --zone Tokyo --strftime '%Y-%m-%d %-I:%M %p %Z' 'Nov 04 - 06:42 PM PST'
 
-=> 2025-11-05 11:42 AM JST
+# => 2025-11-05 11:42 AM JST
 
 ```
 
