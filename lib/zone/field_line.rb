@@ -4,43 +4,28 @@ require_relative 'field_mapping'
 
 module Zone
   class FieldLine
-    def self.parse(text, delimiter: nil, mapping: nil, logger: nil)
-      inferred_delimiter = infer_delimiter(
-        text,
-        explicit: delimiter,
-        logger: logger
-      )
+    def self.parse(text, delimiter:, mapping: nil, logger: nil)
+      parsed_delimiter = parse_delimiter(delimiter)
 
-      fields = split_line(
-        text,
-        inferred_delimiter
-      )
+      fields = split_line(text, parsed_delimiter)
 
       new(
         fields: fields,
-        delimiter: inferred_delimiter,
+        delimiter: parsed_delimiter,
         mapping: mapping
       )
     end
 
-    def self.infer_delimiter(line, explicit: nil, logger: nil)
-      case [line, explicit]
-      in [_, /^\/.*\/$/]
-        Regexp.new(explicit[1..-2])
-      in [_, String => d]
+    def self.parse_delimiter(delimiter_string)
+      case delimiter_string
+      in /^\/(.*)\/$/
+        # Regex delimiter wrapped in slashes: "/\s+/" -> /\s+/
+        Regexp.new($1)
+      in String => d
+        # String delimiter: "," -> ","
         d
-      in [/,\s+/, nil]
-        logger&.debug "Using comma with whitespace as delimiter."
-        /,\s*/
-      in [/\t/, nil]
-        logger&.debug "Using tab as delimiter."
-        "\t"
-      in [/,/, nil]
-        logger&.debug "Using comma as delimiter."
-        ','
       else
-        logger&.debug "Could not detect delimiter. Using whitespace."
-        /\s+/
+        raise ArgumentError, "Invalid delimiter: #{delimiter_string.inspect}"
       end
     end
 

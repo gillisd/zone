@@ -6,6 +6,7 @@ require_relative 'timestamp'
 require_relative 'field_line'
 require_relative 'field_mapping'
 require_relative 'colors'
+require_relative 'timestamp_patterns'
 
 module Zone
   class CLI
@@ -22,7 +23,7 @@ module Zone
         pretty: false,
         headers: false,
         unix: false,
-        field: 1,
+        field: nil,
         zone: nil,
         utc: false,
         local: false
@@ -34,6 +35,7 @@ module Zone
       setup_logger!
       setup_active_support!
       validate_timezone!
+      validate_field_mode!
 
       transformation = build_transformation
       mapping = build_mapping
@@ -73,6 +75,16 @@ module Zone
 
       tz = Zone.find(zone_name)
       raise ArgumentError, "Could not find timezone '#{zone_name}'" if tz.nil?
+    end
+
+    def validate_field_mode!
+      if @options[:field] && !@options[:delimiter]
+        raise ArgumentError, "--field requires --delimiter\nExample: zone --field 2 --delimiter ','"
+      end
+
+      if @options[:headers] && !@options[:field]
+        raise ArgumentError, "--headers requires --field"
+      end
     end
 
     def parse_options!
@@ -249,32 +261,47 @@ module Zone
 
     def process_lines(transformation, mapping)
       input = build_input_source
-      use_field_processing = needs_field_processing?
 
-      input.each do |line_text|
-        if use_field_processing
-          field_line = FieldLine.parse(
-            line_text,
-            delimiter: @options[:delimiter],
-            mapping: mapping,
-            logger: @logger
-          )
-
-          field_line.transform(@options[:field], &transformation)
-
-          # Output only the transformed field
-          transformed_value = field_line[@options[:field]]
-          $stdout.puts transformed_value unless transformed_value.nil?
-        else
-          # Treat entire line as timestamp
-          result = transformation.call(line_text.strip)
-          $stdout.puts result unless result.nil?
-        end
+      if @options[:field]
+        # Field mode: split fields, transform specific field, rejoin
+        process_field_mode(input, transformation, mapping)
+      else
+        # Pattern mode (default): find and replace timestamps in text
+        process_pattern_mode(input, transformation)
       end
     end
 
-    def needs_field_processing?
-      @options[:delimiter] || @options[:headers] || @options[:field] != 1
+    def process_field_mode(input, transformation, mapping)
+      input.each do |line_text|
+        field_line = FieldLine.parse(
+          line_text,
+          delimiter: @options[:delimiter],
+          mapping: mapping,
+          logger: @logger
+        )
+
+        field_line.transform(@options[:field], &transformation)
+
+        # Output full line with transformed field (skip if transformation failed)
+        transformed_value = field_line[@options[:field]]
+        $stdout.puts field_line.to_s if transformed_value
+      end
+    end
+
+    def process_pattern_mode(input, transformation)
+      input.each do |line_text|
+        result = TimestampPatterns.replace_all(line_text, logger: @logger) do |match, pattern|
+          begin
+            formatted = transformation.call(match)
+            Colors.colors($stdout).cyan(formatted)
+          rescue StandardError => e
+            @logger.debug("Failed to transform '#{match}': #{e.message}")
+            match
+          end
+        end
+
+        $stdout.puts result
+      end
     end
   end
 end
