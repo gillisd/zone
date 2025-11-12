@@ -24,8 +24,8 @@ module Zone
       end
 
       new(time)
-    rescue StandardError => e
-      raise ArgumentError, "Could not parse time '#{input}': #{e.message}"
+    rescue StandardError
+      raise ArgumentError, "Could not parse time '#{input}'"
     end
 
     def initialize(time, zone: nil)

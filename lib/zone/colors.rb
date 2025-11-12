@@ -4,8 +4,8 @@
 # Copyright (c) 2021-2024 Hal Brodigan
 # Licensed under the MIT License
 #
-# This is a simplified version containing only the ANSI module for use in
-# error messages. The full command_kit gem provides many additional features.
+# This is a simplified version containing only the ANSI color functionality.
+# The full command_kit gem provides many additional features.
 
 module Zone
   #
@@ -14,128 +14,165 @@ module Zone
   # @see https://en.wikipedia.org/wiki/ANSI_escape_code
   #
   module Colors
-    # ANSI reset code
-    RESET = "\e[0m"
+    #
+    # Applies ANSI formatting to text.
+    #
+    module ANSI
+      # ANSI reset code
+      RESET = "\e[0m"
 
-    # ANSI color code for red text
-    RED = "\e[31m"
+      # ANSI code for bold text
+      BOLD = "\e[1m"
 
-    # ANSI color code for yellow text
-    YELLOW = "\e[33m"
+      # ANSI code to disable boldness
+      RESET_INTENSITY = "\e[22m"
 
-    # ANSI color code for green text
-    GREEN = "\e[32m"
+      # ANSI color code for red text
+      RED = "\e[31m"
 
-    # ANSI color code for cyan text
-    CYAN = "\e[36m"
+      # ANSI color code for yellow text
+      YELLOW = "\e[33m"
 
-    # ANSI color code for bright/bold text
-    BOLD = "\e[1m"
+      # ANSI color code for green text
+      GREEN = "\e[32m"
+
+      # ANSI color code for cyan text
+      CYAN = "\e[36m"
+
+      # ANSI color for the default foreground color
+      RESET_FG = "\e[39m"
+
+      module_function
+
+      #
+      # Bolds the text.
+      #
+      # @param [String, nil] string
+      #   An optional string.
+      #
+      # @return [String, BOLD]
+      #   The bolded string or just {BOLD} if no arguments were given.
+      #
+      def bold(string=nil)
+        if string then "#{BOLD}#{string}#{RESET_INTENSITY}"
+        else           BOLD
+        end
+      end
+
+      #
+      # Sets the text color to red.
+      #
+      # @param [String, nil] string
+      #   An optional string.
+      #
+      # @return [String, RED]
+      #   The colorized string or just {RED} if no arguments were given.
+      #
+      def red(string=nil)
+        if string then "#{RED}#{string}#{RESET_FG}"
+        else           RED
+        end
+      end
+
+      #
+      # Sets the text color to yellow.
+      #
+      # @param [String, nil] string
+      #   An optional string.
+      #
+      # @return [String, YELLOW]
+      #   The colorized string or just {YELLOW} if no arguments were given.
+      #
+      def yellow(string=nil)
+        if string then "#{YELLOW}#{string}#{RESET_FG}"
+        else           YELLOW
+        end
+      end
+
+      #
+      # Sets the text color to green.
+      #
+      # @param [String, nil] string
+      #   An optional string.
+      #
+      # @return [String, GREEN]
+      #   The colorized string or just {GREEN} if no arguments were given.
+      #
+      def green(string=nil)
+        if string then "#{GREEN}#{string}#{RESET_FG}"
+        else           GREEN
+        end
+      end
+
+      #
+      # Sets the text color to cyan.
+      #
+      # @param [String, nil] string
+      #   An optional string.
+      #
+      # @return [String, CYAN]
+      #   The colorized string or just {CYAN} if no arguments were given.
+      #
+      def cyan(string=nil)
+        if string then "#{CYAN}#{string}#{RESET_FG}"
+        else           CYAN
+        end
+      end
+    end
+
+    #
+    # Dummy module with the same interface as {ANSI}, but for when ANSI is not
+    # supported.
+    #
+    module PlainText
+      ANSI.constants(false).each do |name|
+        const_set(name,'')
+      end
+
+      module_function
+
+      [:bold, :red, :yellow, :green, :cyan].each do |name|
+        define_method(name) do |string=nil|
+          string || ''
+        end
+      end
+    end
 
     module_function
 
     #
-    # Wraps text in red color codes.
-    #
-    # @param [String] text
-    #   The text to colorize
-    #
-    # @return [String]
-    #   The red colorized text with reset
-    #
-    def red(text)
-      "#{RED}#{text}#{RESET}"
-    end
-
-    #
-    # Wraps text in yellow color codes.
-    #
-    # @param [String] text
-    #   The text to colorize
-    #
-    # @return [String]
-    #   The yellow colorized text with reset
-    #
-    def yellow(text)
-      "#{YELLOW}#{text}#{RESET}"
-    end
-
-    #
-    # Wraps text in green color codes.
-    #
-    # @param [String] text
-    #   The text to colorize
-    #
-    # @return [String]
-    #   The green colorized text with reset
-    #
-    def green(text)
-      "#{GREEN}#{text}#{RESET}"
-    end
-
-    #
-    # Wraps text in cyan color codes.
-    #
-    # @param [String] text
-    #   The text to colorize
-    #
-    # @return [String]
-    #   The cyan colorized text with reset
-    #
-    def cyan(text)
-      "#{CYAN}#{text}#{RESET}"
-    end
-
-    #
-    # Wraps text in bold codes.
-    #
-    # @param [String] text
-    #   The text to make bold
-    #
-    # @return [String]
-    #   The bold text with reset
-    #
-    def bold(text)
-      "#{BOLD}#{text}#{RESET}"
-    end
-
-    #
-    # Checks if the stream supports ANSI colors.
+    # Checks if the stream supports ANSI output.
     #
     # @param [IO] stream
-    #   The stream to check (default: $stderr)
     #
     # @return [Boolean]
-    #   true if colors should be used, false otherwise
     #
     # @note
-    #   When TERM=dumb or NO_COLOR env var is set, returns false.
-    #   Also returns false if stream is not a TTY.
+    #   When the env variable `TERM` is set to `dumb` or when the `NO_COLOR`
+    #   env variable is set, it will disable color output. Color output will
+    #   also be disabled if the given stream is not a TTY.
     #
-    def enabled?(stream = $stderr)
+    def ansi?(stream=$stdout)
       ENV['TERM'] != 'dumb' && !ENV['NO_COLOR'] && stream.tty?
     end
 
     #
-    # Colorizes text only if colors are enabled for the stream.
-    #
-    # @param [String] text
-    #   The text to potentially colorize
-    #
-    # @param [Symbol] color
-    #   The color method to use (:red, :yellow, :green, :cyan, :bold)
+    # Returns the colors available for the given stream.
     #
     # @param [IO] stream
-    #   The stream to check for color support (default: $stderr)
     #
-    # @return [String]
-    #   Colorized text if colors enabled, plain text otherwise
+    # @return [ANSI, PlainText]
+    #   The ANSI module or PlainText dummy module.
     #
-    def wrap(text, color, stream = $stderr)
-      if enabled?(stream)
-        send(color, text)
-      else
-        text
+    # @example
+    #   puts colors.green("Hello world")
+    #
+    # @example Using colors with stderr output:
+    #   stderr.puts colors(stderr).green("Hello world")
+    #
+    def colors(stream=$stdout)
+      if ansi?(stream) then ANSI
+      else                  PlainText
       end
     end
   end

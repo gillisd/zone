@@ -43,19 +43,24 @@ module Zone
         mapping
       )
     rescue OptionParser::MissingArgument => e
-      $stderr.puts Colors.wrap("Error:", :red, $stderr) + " #{e.message}"
+      $stderr.puts Colors.colors($stderr).red("Error:") + " #{e.message}"
       $stderr.puts "Run 'zone --help' for usage information."
       exit 1
     rescue OptionParser::InvalidOption => e
-      $stderr.puts Colors.wrap("Error:", :red, $stderr) + " #{e.message}"
+      $stderr.puts Colors.colors($stderr).red("Error:") + " #{e.message}"
       $stderr.puts "Run 'zone --help' for usage information."
       exit 1
     rescue Errno::ENOENT => e
       filename = e.message[/@.*- (.*)/, 1]
-      $stderr.puts Colors.wrap("Error:", :red, $stderr) + " Could not parse time '#{filename}'"
+      highlighted = Colors.colors($stderr).bold(filename)
+      $stderr.puts Colors.colors($stderr).red("Error:") + " Could not parse time '#{highlighted}'"
       exit 1
     rescue ArgumentError, StandardError => e
-      $stderr.puts Colors.wrap("Error:", :red, $stderr) + " #{e.message}"
+      # Highlight the value within the error message
+      message = e.message.gsub(/'([^']+)'/) do
+        "'#{Colors.colors($stderr).bold($1)}'"
+      end
+      $stderr.puts Colors.colors($stderr).red("Error:") + " #{message}"
       exit 1
     end
 
@@ -124,9 +129,9 @@ module Zone
           formatted = "#{prefix} #{message}"
 
           colored = case severity
-          when "INFO"  then Colors.wrap(formatted, :cyan, $stderr)
-          when "WARN"  then Colors.wrap(formatted, :yellow, $stderr)
-          when "ERROR" then Colors.wrap(formatted, :red, $stderr)
+          when "INFO"  then Colors.colors($stderr).cyan(formatted)
+          when "WARN"  then Colors.colors($stderr).yellow(formatted)
+          when "ERROR" then Colors.colors($stderr).red(formatted)
           else formatted
           end
 

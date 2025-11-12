@@ -3,3 +3,4 @@ gemspec
 gem 'rubocop', require: false
 gem 'rake', require: false
 gem 'minitest', require: false
+gem 'logger', require: false
