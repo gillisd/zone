@@ -242,21 +242,32 @@ module Zone
 
     def process_lines(transformation, mapping)
       input = build_input_source
+      use_field_processing = needs_field_processing?
 
       input.each do |line_text|
-        field_line = FieldLine.parse(
-          line_text,
-          delimiter: @options[:delimiter],
-          mapping: mapping,
-          logger: @logger
-        )
+        if use_field_processing
+          field_line = FieldLine.parse(
+            line_text,
+            delimiter: @options[:delimiter],
+            mapping: mapping,
+            logger: @logger
+          )
 
-        field_line.transform(@options[:field], &transformation)
+          field_line.transform(@options[:field], &transformation)
 
-        # Output only the transformed field
-        transformed_value = field_line[@options[:field]]
-        $stdout.puts transformed_value unless transformed_value.nil?
+          # Output only the transformed field
+          transformed_value = field_line[@options[:field]]
+          $stdout.puts transformed_value unless transformed_value.nil?
+        else
+          # Treat entire line as timestamp
+          result = transformation.call(line_text.strip)
+          $stdout.puts result unless result.nil?
+        end
       end
+    end
+
+    def needs_field_processing?
+      @options[:delimiter] || @options[:headers] || @options[:field] != 1
     end
   end
 end

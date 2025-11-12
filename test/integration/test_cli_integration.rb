@@ -164,4 +164,57 @@ class TestCliIntegration < Minitest::Test
     assert_match /2025-01-15T19:30:00/, output
     assert_match /\+09:00/, output
   end
+
+  def test_date_command_format_with_spaces
+    output, status = run_zone("Wed Nov 12 19:13:17 UTC 2025", "--utc")
+
+    assert_equal 0, status
+    assert_match /2025-11-12T19:13:17/, output
+  end
+
+  def test_piped_date_format
+    output, status = run_zone_with_input(
+      "Wed Nov 12 19:13:17 UTC 2025",
+      "--utc"
+    )
+
+    assert_equal 0, status
+    assert_match /2025-11-12T19:13:17/, output
+  end
+
+  def test_date_format_with_timezone_abbreviation
+    output, status = run_zone("Wed Nov 12 14:11:40 EST 2025", "--utc")
+
+    assert_equal 0, status
+    assert_match /2025-11-12/, output
+  end
+
+  def test_multiline_date_formats
+    input = "Wed Nov 12 10:30:00 UTC 2025\nThu Nov 13 11:45:00 UTC 2025"
+    output, status = run_zone_with_input(input, "--utc")
+
+    assert_equal 0, status
+    lines = output.split("\n")
+    assert_equal 2, lines.count
+    assert_match /2025-11-12T10:30:00/, lines[0]
+    assert_match /2025-11-13T11:45:00/, lines[1]
+  end
+
+  def test_field_processing_not_triggered_by_default
+    # Ensure spaces in timestamp don't cause field splitting
+    output, status = run_zone("2025-01-15 10:30:00", "--utc")
+
+    assert_equal 0, status
+    assert_match /2025-01-15T10:30:00/, output
+  end
+
+  def test_explicit_field_1_still_works
+    output, status = run_zone_with_input(
+      "1736937000 extra data",
+      "--field", "1", "--unix"
+    )
+
+    assert_equal 0, status
+    assert_equal "1736937000\n", output
+  end
 end
