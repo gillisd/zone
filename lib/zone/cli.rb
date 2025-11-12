@@ -50,6 +50,14 @@ module Zone
         transformation,
         mapping
       )
+    rescue OptionParser::MissingArgument => e
+      $stderr.puts "Error: #{e.message}"
+      $stderr.puts "Run 'zone --help' for usage information."
+      exit 1
+    rescue OptionParser::InvalidOption => e
+      $stderr.puts "Error: #{e.message}"
+      $stderr.puts "Run 'zone --help' for usage information."
+      exit 1
     rescue Errno::ENOENT => e
       filename = e.message[/@.*- (.*)/, 1]
       $stderr.puts "Error: Could not parse time '#{filename}'"
