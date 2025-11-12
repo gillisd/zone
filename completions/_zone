@@ -1,0 +1,89 @@
+#compdef zone
+
+# Zsh completion script for zone
+# https://github.com/anthropics/zone
+
+_zone() {
+  local context state state_descr line
+  typeset -A opt_args
+
+  local -a output_formats timezones_opts data_opts other_opts
+
+  output_formats=(
+    '(--pretty --unix --strftime)--iso8601[Output in ISO 8601 format (default)]'
+    '(--iso8601 --unix --strftime)-p[Output in pretty format]'
+    '(--iso8601 --unix --strftime)--pretty[Output in pretty format (e.g., "Jan 02 - 03:04 PM")]'
+    '(--iso8601 --pretty --strftime)--unix[Output as Unix timestamp]'
+    '(--iso8601 --pretty --unix)-f[Output format using strftime]:format string'
+    '(--iso8601 --pretty --unix)--strftime[Output format using strftime]:format string'
+  )
+
+  timezones_opts=(
+    '--require[Require external library]:library name'
+    '(-z --utc --local)-z[Convert to specified timezone]:timezone:_zone_timezones'
+    '(-z --utc --local)--zone[Convert to specified timezone]:timezone:_zone_timezones'
+    '(-z --zone --local)--utc[Convert to UTC timezone]'
+    '(-z --zone --utc)--local[Convert to local timezone]'
+  )
+
+  data_opts=(
+    '(-F)-F[Field index or field name]:field:(1 2 3 4 5)'
+    '(-F)--field[Field index or field name]:field:(1 2 3 4 5)'
+    '(-d)-d[Field delimiter]:delimiter'
+    '(-d)--delimiter[Field delimiter]:delimiter'
+    '--headers[Treat first line as headers]'
+  )
+
+  other_opts=(
+    '(-v)'{-v,--verbose}'[Enable verbose/debug output]'
+    '(-h)'{-h,--help}'[Show help message]'
+  )
+
+  _arguments -C -s \
+    $output_formats \
+    $timezones_opts \
+    $data_opts \
+    $other_opts \
+    '*:timestamp string:_zone_timestamp'
+}
+
+_zone_timezones() {
+  local -a timezones
+
+  # Common timezones for quick completion
+  timezones=(
+    'UTC:Coordinated Universal Time'
+    'local:Local system timezone'
+    'America/New_York:Eastern Time'
+    'America/Chicago:Central Time'
+    'America/Denver:Mountain Time'
+    'America/Los_Angeles:Pacific Time'
+    'Europe/London:British Time'
+    'Europe/Paris:Central European Time'
+    'Asia/Tokyo:Japan Standard Time'
+    'Asia/Shanghai:China Standard Time'
+    'Australia/Sydney:Australian Eastern Time'
+  )
+
+  _describe -t timezones 'timezone' timezones
+
+  # Also allow arbitrary timezone input
+  _message -r 'timezone name or fuzzy match'
+}
+
+_zone_timestamp() {
+  # Suggest common timestamp formats
+  local -a formats
+  formats=(
+    'now:Current time'
+    '$(date):Current date/time from date command'
+    '2025-01-15T10:30:00Z:ISO 8601 format'
+    '1736937000:Unix timestamp (seconds)'
+    '"5 minutes ago":Relative time'
+    '"1 hour from now":Relative future time'
+  )
+
+  _describe -t formats 'timestamp format' formats
+}
+
+_zone "$@"
