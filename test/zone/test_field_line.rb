@@ -103,7 +103,7 @@ class TestFieldLine < Minitest::Test
   def test_to_s_uses_tab_for_regex_delimiter
     line = Zone::FieldLine.parse("foo  bar   baz")
 
-    assert_match(/\t/, line.to_s)
+    assert_match /\t/, line.to_s
   end
 
   def test_to_a_returns_fields_array

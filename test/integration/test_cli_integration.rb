@@ -23,29 +23,29 @@ class TestCliIntegration < Minitest::Test
     output, status = run_zone("2025-01-15T10:30:00Z", "--utc")
 
     assert_equal 0, status
-    assert_match(/2025-01-15T10:30:00/, output)
+    assert_match /2025-01-15T10:30:00/, output
   end
 
   def test_convert_timestamp_to_specific_zone
     output, status = run_zone("2025-01-15T10:30:00Z", "--zone", "Tokyo")
 
     assert_equal 0, status
-    assert_match(/2025-01-15T19:30:00/, output)
+    assert_match /2025-01-15T19:30:00/, output
   end
 
   def test_convert_unix_timestamp
     output, status = run_zone("1736937000", "--zone", "UTC")
 
     assert_equal 0, status
-    assert_match(/2025-01-15/, output)
+    assert_match /2025-01-15/, output
   end
 
   def test_pretty_format_output
     output, status = run_zone("2025-01-15T10:30:00Z", "--pretty")
 
     assert_equal 0, status
-    assert_match(/Jan/, output)
-    assert_match(/\d{1,2}:\d{2} [AP]M/, output)
+    assert_match /Jan/, output
+    assert_match /\d{1,2}:\d{2} [AP]M/, output
   end
 
   def test_unix_format_output
@@ -100,8 +100,8 @@ class TestCliIntegration < Minitest::Test
     )
 
     assert_equal 0, status
-    refute_match(/timestamp/, output)
-    assert_match(/1736937000/, output)
+    refute_match /timestamp/, output
+    assert_match /1736937000/, output
   end
 
   def test_multiple_lines_processing
@@ -115,7 +115,7 @@ class TestCliIntegration < Minitest::Test
     lines = output.split("\n")
     assert_equal 3, lines.count
     lines.each do |line|
-      assert_match(/Jan/, line)
+      assert_match /Jan/, line
     end
   end
 
@@ -123,35 +123,35 @@ class TestCliIntegration < Minitest::Test
     output, status = run_zone("2025-01-15T10:30:00Z", "--zone", "tokyo")
 
     assert_equal 0, status
-    assert_match(/2025-01-15T19:30:00/, output)
+    assert_match /2025-01-15T19:30:00/, output
   end
 
   def test_local_timezone_conversion
     output, status = run_zone("2025-01-15T10:30:00Z", "--local")
 
     assert_equal 0, status
-    assert_match(/2025-01-15/, output)
+    assert_match /2025-01-15/, output
   end
 
   def test_verbose_logging
     output, status = run_zone("2025-01-15T10:30:00Z", "--verbose", "--utc")
 
     assert_equal 0, status
-    assert_match(/DEBUG/, output)
+    assert_match /DEBUG/, output
   end
 
   def test_invalid_timestamp_returns_error
     output, status = run_zone("not_a_valid_timestamp")
 
     refute_equal 0, status
-    assert_match(/Could not parse time/, output)
+    assert_match /Could not parse time/, output
   end
 
   def test_invalid_timezone_returns_error
     output, status = run_zone("2025-01-15T10:30:00Z", "--zone", "NotARealTimezone12345")
 
     refute_equal 0, status
-    assert_match(/Could not find timezone/, output)
+    assert_match /Could not find timezone/, output
   end
 
   def test_combined_field_and_zone_conversion
@@ -161,7 +161,7 @@ class TestCliIntegration < Minitest::Test
     )
 
     assert_equal 0, status
-    assert_match(/2025-01-15T19:30:00/, output)
-    assert_match(/\+09:00/, output)
+    assert_match /2025-01-15T19:30:00/, output
+    assert_match /\+09:00/, output
   end
 end

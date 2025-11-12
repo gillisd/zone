@@ -70,7 +70,7 @@ class TestTimestamp < Minitest::Test
       Zone::Timestamp.parse("not a valid timestamp")
     end
 
-    assert_match(/Could not parse time/, error.message)
+    assert_match /Could not parse time/, error.message
   end
 
   def test_in_zone_returns_new_timestamp
@@ -102,7 +102,7 @@ class TestTimestamp < Minitest::Test
     timestamp = Zone::Timestamp.parse("2025-01-15T10:30:00Z")
     formatted = timestamp.to_iso8601
 
-    assert_match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, formatted)
+    assert_match /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, formatted
   end
 
   def test_to_unix_returns_integer
@@ -117,8 +117,8 @@ class TestTimestamp < Minitest::Test
     timestamp = Zone::Timestamp.parse("2025-01-15T10:30:00Z")
     pretty = timestamp.to_pretty
 
-    assert_match(/Jan \d+/, pretty)
-    assert_match(/\d{1,2}:\d{2} [AP]M/, pretty)
+    assert_match /Jan \d+/, pretty
+    assert_match /\d{1,2}:\d{2} [AP]M/, pretty
   end
 
   def test_strftime_custom_format
@@ -135,7 +135,7 @@ class TestTimestamp < Minitest::Test
       .to_iso8601
 
     assert_instance_of String, result
-    assert_match(/\+09:00/, result)
+    assert_match /\+09:00/, result
   end
 
   def test_responds_to_all_public_methods

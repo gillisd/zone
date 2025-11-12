@@ -28,14 +28,14 @@ class TestZoneModule < Minitest::Test
     tz = Zone.find("new york")
 
     assert_kind_of TZInfo::Timezone, tz
-    assert_match(/New_York/, tz.identifier)
+    assert_match /New_York/, tz.identifier
   end
 
   def test_find_us_timezone
     tz = Zone.find("eastern")
 
     assert_kind_of TZInfo::Timezone, tz
-    assert_match(/^US\//, tz.identifier)
+    assert_match /^US\//, tz.identifier
   end
 
   def test_find_returns_nil_for_invalid
