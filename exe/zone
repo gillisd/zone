@@ -9,25 +9,28 @@ require 'tzinfo'
 require 'time'
 require 'date'
 
-options = { delimiter: nil, strftime: nil, iso8601: false, pretty: false, headers: false, unix: false, index: 1, zone: nil, utc: false, local: false }
+options = { delimiter: nil, strftime: nil, iso8601: false, pretty: false, headers: false, unix: false, field: 1, zone: nil, utc: false, local: false }
 parser = OptionParser.new do |parser|
   parser.banner = "Usage: zone [options] [timestamps...]"
   parser.separator ""
   parser.separator "Output Formats:"
   parser.on '--iso8601', 'Output in ISO 8601 (default: true)'
   parser.on '--strftime FORMAT', '-f', 'Output format using strftime (default: none)'
-  parser.on '--pretty', 'Output in pretty format (e.g., "Jan 02 - 03:04 PM")'
+  parser.on '--pretty', '-p', 'Output in pretty format (e.g., "Jan 02 - 03:04 PM")'
   parser.on '--unix', 'Output as Unix timestamp (default: false)'
   
   parser.separator ""
   parser.separator "Timezones:"
-  parser.on '--zone TZ', 'Convert to time zone (default: local time zone)'
+  parser.on '--require STRING', 'Require external library like "active_support" for more powerful parsing' do |requirement|
+    require requirement
+  end
+  parser.on '--zone TZ', '-z', 'Convert to time zone (default: local time zone)'
   parser.on '--local', 'Convert to local time zone (alias for --zone local)'
   parser.on '--utc', 'Convert to UTC time zone (alias for --zone UTC)'
   
   parser.separator ""
   parser.separator "Data Processing:"
-  parser.on '--index N', '-i N', Integer, 'Index of the field to convert (default: 1)'
+  parser.on '--field FIELD', '-f N', String, 'Field index or field name to convert (default: 1)'
   parser.on '--delimiter PATTERN', '-d', 'Field delimiter (default: space)'
   parser.on '--headers', 'Skip the first line as headers'
   
@@ -40,7 +43,13 @@ parser = OptionParser.new do |parser|
   end
 end
 
+
+
 parser.parse!(into: options)
+
+if defined?(ActiveSupport)
+  ActiveSupport.to_time_preserves_timezone = true
+end
 
 COLORS = {
   reset: "\e[0m",
@@ -175,7 +184,7 @@ zone_callables.merge!(
   'UTC' => ->(t) { t.utc },
 )
 
-actual_index = options[:index] - 1
+#ctual_index = options[:index] - 1
 zone_callable = zone_callables[zone]
 
 # Detect if args are timestamps (not filenames)
@@ -197,77 +206,129 @@ input = (
   end
 )
 
-input.each do |line|
-  case [options, $.]
-  in { headers: true }, 1 then next
-  in { delimiter: String => delimiter }
-  in { delimiter: nil }
-    $logger.info "Auto-detecting delimiter for line: #{line.inspect}"
-    options[:delimiter] = (
-      case line
-      in /,\s*/
-        $logger.info "Using comma with whitespace as delimiter."
-        /,\s*/
-      in /\t/
-        $logger.info "Using tab as delimiter."
-        "\t"
-      in /,/
-        $logger.info "Using comma as delimiter."
-        ','
-      else
-        $logger.info "Could not detect delimiter. Using whitespace."
-        /\s+/
-      end
-    )
-  else
-    ""
+options => { headers:, delimiter:, field: }
+
+dynamic_delimiter = delimiter.nil?
+
+class FieldMap
+  def initialize(header_line: nil, delimiter: nil)
+    @header_line = header_line
+    @delimiter = delimiter
+    construct!
   end
 
-  delimiter = options[:delimiter] || ""
-  
-  fields = (
+  def update!(line, field)
+    line_delimiter = infer_delimiter(line)
+
+    split = split_line(line, line_delimiter)
+    field = @mapping[field]
+    value = split[field]&.strip
+
+    new_value = yield value
+    split[field] = new_value
+    output_delim = (line_delimiter in Regexp) ? "\t" : output_delim
+    if field == 1 && split.count == 1
+      return split
+    end
+    split.join(output_delim)
+  end
+
+  private
+
+  def construct!
+    if @header_line
+      header_delimiter = infer_delimiter(@header_line)
+      split = split_line(@header_line, header_delimiter)
+      primary_mapping = split.zip(0.upto(split.size - 1).to_a).to_h
+      inverted = primary_mapping.invert
+      @mapping = Hash.new { |h,k| 
+          primary_mapping.fetch(k, k.to_i - 1)
+        #primary_mapping.fetch(k, inverted[k.to_i - 1]) 
+      }
+    else
+      @mapping = Hash.new { |h,k| k.to_i - 1 }
+    end
+  end
+
+  def split_line(line, delimiter)
     case [line, delimiter]
     in String, "" then [line]
-    in String, /^.+$/ then line.split(delimiter) 
-    else [line]
+    in String, String | Regexp then line.split(delimiter)
+    else raise "Invalid delimiter type: #{delimiter.class}"
     end
-   )
+  end
 
-  target = fields[actual_index]
+  def infer_delimiter(line)
+    case [line, @delimiter]
+    in _, /^\/.*\/$/
+      Regexp.new(@delimiter[1..-2])
+    in _, String then line
+    in /,\s*/, _
+      $logger.info "Using comma with whitespace as delimiter."
+      /,\s*/
+    in /\t/, _
+      $logger.info "Using tab as delimiter."
+      "\t"
+    in /,/, _
+      $logger.info "Using comma as delimiter."
+      ','
+    else
+      $logger.info "Could not detect delimiter. Using whitespace."
+      /\s+/
+    end
+  end
+end
 
-  time = (
-    begin
-      case target
-      in Time then target
-      in DateTime then target.to_time
-      in Date then target.to_time
-      in /^[0-9\.]+$/
-        Time.at(target.to_f)
-      else
-        DateTime.parse(target).to_time
+
+map = (
+  if headers
+    header_line = input.next
+    map = FieldMap.new(header_line:, delimiter:)
+    $stdout.puts map.update!(header_line, 1) { it }
+    map
+  else
+    FieldMap.new(delimiter:)
+  end
+)
+
+input.each do |line|
+  map.update!(line, field) do |target|
+    time = (
+      begin
+        case target
+        in Time then target
+        in DateTime then target.to_time
+        in Date then target.to_time
+        in /^[0-9\.]+$/
+          precision = target.length - 10
+          time_float = target.to_f / 10**precision
+          Time.at(time_float)
+        in /^(?<amount>[0-9\.]+) (?<unit>second|minute|hour|day|week|month|year|decade)s? (?<direction>ago|from now)$/
+          $~ => { amount:, unit:, direction: }
+          amount.to_i.public_send(unit).public_send(direction)
+        else
+          DateTime.parse(target).to_time
+        end
+      rescue StandardError => e
+        $logger.warn "Warning: Could not parse time '#{target}'. Skipping line."
+        $logger.warn "  #{e.class}: #{e.message}"
+        next
       end
-    rescue StandardError => e
-      $logger.warn "Warning: Could not parse time '#{target}'. Skipping line."
-      $logger.warn "  #{e.class}: #{e.message}"
-      next
-    end
-  )
-  
-  converted = zone_callable.call(time)
-  formatted = (
-    case format
-    in :pretty
-      if (Time.now - converted).abs > 30 * 24 * 60 * 60
-        converted.strftime("%b %d, %Y - %I:%M %p %Z")
-      else
-        converted.strftime("%b %d - %I:%M %p %Z")
+    )
+    
+    converted = zone_callable.call(time)
+    formatted = (
+      case format
+      in :pretty
+        if (Time.now - converted).abs > 30 * 24 * 60 * 60
+          converted.strftime("%b %d, %Y - %I:%M %p %Z")
+        else
+          converted.strftime("%b %d - %I:%M %p %Z")
+        end
+      in :strftime then converted.strftime(options[:strftime])
+      in :iso8601 then converted.iso8601
+      in :unix then converted.to_i
       end
-    in :strftime then converted.strftime(options[:strftime])
-    in :iso8601 then converted.iso8601
-    in :unix then converted.to_i
-    end
-  )
-
-  fields[actual_index] = formatted
-  puts fields.join(delimiter)
+    )
+  end.then { $stdout.puts it }
 end
