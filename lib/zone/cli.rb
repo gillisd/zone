@@ -5,18 +5,10 @@ require 'optparse'
 require_relative 'timestamp'
 require_relative 'field_line'
 require_relative 'field_mapping'
+require_relative 'colors'
 
 module Zone
   class CLI
-    COLORS = {
-      reset: "\e[0m",
-      bold: "\e[1m",
-      cyan: "\e[36m",
-      yellow: "\e[33m",
-      red: "\e[31m",
-      gray: "\e[90m"
-    }.freeze
-
     def self.run(argv)
       new(argv).run
     end
@@ -51,19 +43,19 @@ module Zone
         mapping
       )
     rescue OptionParser::MissingArgument => e
-      $stderr.puts "Error: #{e.message}"
+      $stderr.puts Colors.wrap("Error:", :red, $stderr) + " #{e.message}"
       $stderr.puts "Run 'zone --help' for usage information."
       exit 1
     rescue OptionParser::InvalidOption => e
-      $stderr.puts "Error: #{e.message}"
+      $stderr.puts Colors.wrap("Error:", :red, $stderr) + " #{e.message}"
       $stderr.puts "Run 'zone --help' for usage information."
       exit 1
     rescue Errno::ENOENT => e
       filename = e.message[/@.*- (.*)/, 1]
-      $stderr.puts "Error: Could not parse time '#{filename}'"
+      $stderr.puts Colors.wrap("Error:", :red, $stderr) + " Could not parse time '#{filename}'"
       exit 1
     rescue ArgumentError, StandardError => e
-      $stderr.puts "Error: #{e.message}"
+      $stderr.puts Colors.wrap("Error:", :red, $stderr) + " #{e.message}"
       exit 1
     end
 
@@ -121,13 +113,6 @@ module Zone
     def setup_logger!
       @logger = Logger.new($stderr).tap do |l|
         l.formatter = ->(severity, _datetime, _progname, message) {
-          color = case severity
-          when "INFO"  then COLORS[:cyan]
-          when "WARN"  then COLORS[:yellow]
-          when "ERROR" then COLORS[:red]
-          else COLORS[:gray]
-          end
-
           prefix = case severity
           when "INFO"  then "→"
           when "WARN"  then "⚠"
@@ -136,7 +121,16 @@ module Zone
           else "?"
           end
 
-          "#{color}#{prefix} #{message}#{COLORS[:reset]}\n"
+          formatted = "#{prefix} #{message}"
+
+          colored = case severity
+          when "INFO"  then Colors.wrap(formatted, :cyan, $stderr)
+          when "WARN"  then Colors.wrap(formatted, :yellow, $stderr)
+          when "ERROR" then Colors.wrap(formatted, :red, $stderr)
+          else formatted
+          end
+
+          "#{colored}\n"
         }
         verbose = @options.delete(:verbose)
         l.level = verbose ? Logger::DEBUG : Logger::WARN
