@@ -56,7 +56,7 @@ class TestFieldMapping < Minitest::Test
       mapping.resolve("nonexistent")
     end
 
-    assert_match /not found/, error.message
+    assert_match(/not found/, error.message)
   end
 
   def test_raises_error_for_invalid_key_type
