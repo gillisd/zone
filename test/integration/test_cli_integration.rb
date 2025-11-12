@@ -217,4 +217,71 @@ class TestCliIntegration < Minitest::Test
     assert_equal 0, status
     assert_equal "1736937000\n", output
   end
+
+  def test_no_arguments_uses_current_time
+    # When STDIN is a tty (interactive), zone with no args uses Time.now
+    # In automated tests, STDIN is not a tty, so we skip this test
+    skip "Cannot test TTY behavior in automated tests"
+  end
+
+  def test_multiple_timestamp_arguments
+    output, status = run_zone(
+      "2025-01-15T10:30:00Z",
+      "2025-01-16T11:00:00Z",
+      "--utc"
+    )
+
+    assert_equal 0, status
+    lines = output.split("\n")
+    assert_equal 2, lines.count
+    assert_match /2025-01-15T10:30:00/, lines[0]
+    assert_match /2025-01-16T11:00:00/, lines[1]
+  end
+
+  def test_empty_line_input_skipped_with_warning
+    output, status = run_zone_with_input("", "--utc")
+
+    assert_equal 0, status
+    assert_match /Warning.*Could not parse/, output
+  end
+
+  def test_mixed_valid_and_invalid_timestamps
+    input = "2025-01-15T10:30:00Z\ninvalid\n2025-01-16T10:30:00Z"
+    output, status = run_zone_with_input(input, "--utc")
+
+    assert_equal 0, status
+    assert_match /2025-01-15T10:30:00/, output
+    assert_match /2025-01-16T10:30:00/, output
+    assert_match /Warning/, output
+  end
+
+  def test_out_of_bounds_field_index_warns
+    output, status = run_zone_with_input(
+      "a,b,c",
+      "--field", "5", "--delimiter", ","
+    )
+
+    assert_equal 0, status
+    assert_match /Warning/, output
+  end
+
+  def test_nonexistent_field_name_returns_error
+    output, status = run_zone_with_input(
+      "a,b,c",
+      "--field", "nonexistent", "--delimiter", ","
+    )
+
+    refute_equal 0, status
+    assert_match /Error/, output
+  end
+
+  def test_headers_only_input_produces_no_output
+    output, status = run_zone_with_input(
+      "name,timestamp,value",
+      "--field", "timestamp", "--headers"
+    )
+
+    assert_equal 0, status
+    assert_empty output.strip
+  end
 end

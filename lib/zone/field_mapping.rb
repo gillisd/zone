@@ -21,8 +21,12 @@ module Zone
         # Numeric string - convert to integer and resolve
         name.to_i - 1
       in String => name
-        @name_to_index&.fetch(name) do
-          raise KeyError, "Field '#{name}' not found in mapping"
+        if @name_to_index
+          @name_to_index.fetch(name) do
+            raise KeyError, "Field '#{name}' not found in mapping"
+          end
+        else
+          raise KeyError, "Cannot access field by name without headers. Use --headers or numeric field index."
         end
       in Integer => index
         # Convert 1-based user input to 0-based array index
