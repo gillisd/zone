@@ -27,8 +27,10 @@ module Zone
     # Zone pretty3 format: ISO-style compact (e.g., "2025-01-15 10:30 UTC")
     P05_PRETTY3_ISO = /\b\d{4}-\d{2}-\d{2} \d{2}:\d{2} [A-Z]{3,4}\b/
 
-    # Unix timestamp (10 digits, e.g., 1736937000)
-    P06_UNIX_TIMESTAMP = /\b\d{10}\b/
+    # Unix timestamp (10 digits, 2001-2036, e.g., 1736937000)
+    # Matches timestamps starting with 1 (2001-2033) or 20-21 (2033-2039)
+    # Avoids false positives from phone numbers, order IDs, etc.
+    P06_UNIX_TIMESTAMP = /(?<!\d)(?:1\d{9}|2[0-1]\d{8})(?!\d)/
 
     # Relative time expressions (e.g., "5 hours ago", "3 days from now")
     P07_RELATIVE_TIME = /\b\d+\s+(?:second|minute|hour|day|week|month|year)s?\s+(?:ago|from now)\b/i
@@ -128,12 +130,13 @@ module Zone
     #   The matched string
     #
     # @return [Boolean]
-    #   true if valid unix timestamp (1970-2100)
+    #   true if valid unix timestamp (2001-2036)
     #
     def valid_unix?(str)
       int = str.to_i
-      # Range: 1970-01-01 00:00:00 to 2100-01-01 00:00:00
-      int >= 0 && int <= 4102444800
+      # Range: 2001-09-09 (first 10-digit) to 2036-07-11 (11 years ahead)
+      # This avoids false positives from phone numbers, order IDs, etc.
+      int >= 1_000_000_000 && int <= 2_100_000_000
     end
   end
 end
