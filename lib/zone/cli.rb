@@ -116,8 +116,8 @@ module Zone
 
         p.separator ""
         p.separator "Field Mode Options:"
-        p.on '--field FIELD', '-F N', String, 'Field index or name to convert (requires --delimiter)'
-        p.on '--delimiter PATTERN', '-d', 'Field separator (string or /regex/, required for --field)'
+        p.on '--field FIELD', String, 'Field index or name to convert (requires --delimiter)'
+        p.on '-d', '--delimiter PATTERN', 'Field separator (string or /regex/, required for --field)'
         p.on '--headers', 'Skip first line as headers (requires --field)'
 
         p.separator ""
