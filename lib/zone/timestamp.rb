@@ -68,11 +68,16 @@ module Zone
       @time.to_i
     end
 
-    def to_pretty
-      if (Time.now - @time).abs > 30 * 24 * 60 * 60
-        @time.strftime("%b %d, %Y - %I:%M %p %Z")
+    def to_pretty(style = 1)
+      case style
+      when 1
+        @time.strftime('%b %d, %Y - %l:%M %p %Z')
+      when 2
+        @time.strftime('%b %d, %Y - %H:%M %Z')
+      when 3
+        @time.strftime('%Y-%m-%d %H:%M %Z')
       else
-        @time.strftime("%b %d - %I:%M %p %Z")
+        raise ArgumentError, "Invalid pretty style '#{style}' (must be 1, 2, or 3)"
       end
     end
 

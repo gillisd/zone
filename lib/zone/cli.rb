@@ -20,13 +20,14 @@ module Zone
         delimiter: nil,
         strftime: nil,
         iso8601: false,
-        pretty: false,
+        pretty: nil,
         headers: false,
         unix: false,
         field: nil,
         zone: nil,
         utc: false,
-        local: false
+        local: false,
+        color: 'auto'
       }
     end
 
@@ -91,11 +92,18 @@ module Zone
       parser = OptionParser.new do |p|
         p.banner = "Usage: zone [options] [timestamps...]"
         p.separator ""
+        p.separator "Modes:"
+        p.separator "  Pattern Mode (default): Finds and converts timestamps in arbitrary text"
+        p.separator "    Example: echo 'Event at 2025-01-15T10:30:00Z' | zone"
+        p.separator ""
+        p.separator "  Field Mode: Converts specific field in delimited data (requires --field and --delimiter)"
+        p.separator "    Example: echo 'alice,1736937000,active' | zone --field 2 --delimiter ','"
+        p.separator ""
         p.separator "Output Formats:"
-        p.on '--iso8601', 'Output in ISO 8601 (default: true)'
-        p.on '--strftime FORMAT', '-f', 'Output format using strftime (default: none)'
-        p.on '--pretty', '-p', 'Output in pretty format (e.g., "Jan 02 - 03:04 PM")'
-        p.on '--unix', 'Output as Unix timestamp (default: false)'
+        p.on '--iso8601', 'Output in ISO 8601'
+        p.on '-f', '--strftime FORMAT', 'Output format using strftime'
+        p.on '-p', '--pretty [STYLE]', Integer, 'Pretty format (1=12hr, 2=24hr, 3=ISO-compact, default: 1)'
+        p.on '--unix', 'Output as Unix timestamp'
 
         p.separator ""
         p.separator "Timezones:"
@@ -107,13 +115,14 @@ module Zone
         p.on '--utc', 'Convert to UTC time zone (alias for --zone UTC)'
 
         p.separator ""
-        p.separator "Data Processing:"
-        p.on '--field FIELD', '-F N', String, 'Field index or field name to convert (default: 1)'
-        p.on '--delimiter PATTERN', '-d', 'Field delimiter (default: space)'
-        p.on '--headers', 'Skip the first line as headers'
+        p.separator "Field Mode Options:"
+        p.on '--field FIELD', '-F N', String, 'Field index or name to convert (requires --delimiter)'
+        p.on '--delimiter PATTERN', '-d', 'Field separator (string or /regex/, required for --field)'
+        p.on '--headers', 'Skip first line as headers (requires --field)'
 
         p.separator ""
         p.separator "Other:"
+        p.on '--color MODE', ['auto', 'always', 'never'], 'Colorize output (auto, always, never, default: auto)'
         p.on '--verbose', '-v', 'Enable verbose/debug output'
         p.on '--help', '-h', 'Show this help message' do
           puts p
@@ -177,8 +186,10 @@ module Zone
         end
 
         case format_method
-        in :to_iso8601 | :to_unix | :to_pretty
+        in :to_iso8601 | :to_unix
           converted.send(format_method)
+        in { pretty: Integer => style }
+          converted.to_pretty(style)
         in { strftime: String => fmt }
           converted.strftime(fmt)
         end
@@ -197,7 +208,7 @@ module Zone
       in { zone: String => z }
         z
       else
-        'utc'
+        'local'
       end
     end
 
@@ -207,10 +218,12 @@ module Zone
         { strftime: fmt }
       in { unix: true }
         :to_unix
-      in { pretty: true }
-        :to_pretty
-      else
+      in { iso8601: true }
         :to_iso8601
+      in { pretty: Integer => style }
+        { pretty: style }
+      else
+        { pretty: 1 }
       end
     end
 
@@ -271,7 +284,20 @@ module Zone
       end
     end
 
+    def colorize(stream)
+      case @options[:color]
+      when 'always'
+        Colors::ANSI
+      when 'never'
+        Colors::PlainText
+      when 'auto'
+        Colors.colors(stream)
+      end
+    end
+
     def process_field_mode(input, transformation, mapping)
+      colors = colorize($stdout)
+
       input.each do |line_text|
         field_line = FieldLine.parse(
           line_text,
@@ -284,16 +310,22 @@ module Zone
 
         # Output full line with transformed field (skip if transformation failed)
         transformed_value = field_line[@options[:field]]
-        $stdout.puts field_line.to_s if transformed_value
+        if transformed_value
+          # Colorize the transformed field in the output
+          output_line = field_line.to_s.sub(transformed_value, colors.cyan(transformed_value))
+          $stdout.puts output_line
+        end
       end
     end
 
     def process_pattern_mode(input, transformation)
+      colors = colorize($stdout)
+
       input.each do |line_text|
         result = TimestampPatterns.replace_all(line_text, logger: @logger) do |match, pattern|
           begin
             formatted = transformation.call(match)
-            Colors.colors($stdout).cyan(formatted)
+            colors.cyan(formatted)
           rescue StandardError => e
             @logger.debug("Failed to transform '#{match}': #{e.message}")
             match
