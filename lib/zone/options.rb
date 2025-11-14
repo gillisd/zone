@@ -21,7 +21,42 @@ module Zone
       setup_options
     end
 
+    #
+    # Validate options and their combinations.
+    #
+    # @return [self]
+    #   Returns self for method chaining
+    #
+    # @raise [ArgumentError]
+    #   If validation fails
+    #
+    def validate!
+      validate_timezone!
+      validate_field_mode!
+      self
+    end
+
     private
+
+    def validate_timezone!
+      case @zone
+      in 'utc' | 'UTC' | 'local'
+        # Valid special timezone keywords
+      else
+        tz = Zone.find(@zone)
+        raise ArgumentError, "Could not find timezone '#{@zone}'" if tz.nil?
+      end
+    end
+
+    def validate_field_mode!
+      if @field && !@delimiter
+        raise ArgumentError, "--field requires --delimiter\nExample: zone --field 2 --delimiter ','"
+      end
+
+      if @headers && !@field
+        raise ArgumentError, "--headers requires --field"
+      end
+    end
 
     def setup_options
       self.banner = "Usage: zone [options] [timestamps...]"
