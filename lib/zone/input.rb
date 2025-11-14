@@ -40,7 +40,8 @@ module Zone
           @argv
         elsif !@stdin.tty?
           # No arguments but stdin is piped - read from stdin
-          @stdin.each_line(chomp: true)
+          # Convert to array so it can be iterated multiple times (e.g., for headers)
+          @stdin.each_line(chomp: true).to_a
         else
           # Interactive mode with no arguments - use current time
           [Time.now.to_s]
