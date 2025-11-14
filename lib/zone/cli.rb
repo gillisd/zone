@@ -145,11 +145,7 @@ module Zone
 
       fields = FieldLine.split_line(
         header_line,
-        FieldLine.infer_delimiter(
-          header_line,
-          explicit: options.delimiter,
-          logger: @logger
-        )
+        FieldLine.parse_delimiter(options.delimiter)
       )
 
       FieldMapping.from_fields(fields.map(&:strip))

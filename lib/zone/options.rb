@@ -99,9 +99,5 @@ module Zone
         exit
       end
     end
-
-    def verbose?
-      @verbose
-    end
   end
 end

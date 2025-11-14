@@ -129,42 +129,6 @@ class TestFieldLine < Minitest::Test
     assert_empty line.to_h
   end
 
-  def test_infer_delimiter_comma
-    delimiter = Zone::FieldLine.infer_delimiter(
-      "a,b,c",
-      explicit: nil
-    )
-
-    assert_equal ",", delimiter
-  end
-
-  def test_infer_delimiter_tab
-    delimiter = Zone::FieldLine.infer_delimiter(
-      "a\tb\tc",
-      explicit: nil
-    )
-
-    assert_equal "\t", delimiter
-  end
-
-  def test_infer_delimiter_whitespace
-    delimiter = Zone::FieldLine.infer_delimiter(
-      "a  b   c",
-      explicit: nil
-    )
-
-    assert_instance_of Regexp, delimiter
-  end
-
-  def test_infer_delimiter_explicit_overrides
-    delimiter = Zone::FieldLine.infer_delimiter(
-      "a,b,c",
-      explicit: "|"
-    )
-
-    assert_equal "|", delimiter
-  end
-
   def test_chainable_transformations
     line = Zone::FieldLine.parse("a,b,c")
 
