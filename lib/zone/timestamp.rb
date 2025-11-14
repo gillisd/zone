@@ -61,7 +61,7 @@ module Zone
     end
 
     def to_iso8601
-      @time.iso8601
+      @time.utc_offset.zero? ? @time.strftime('%Y-%m-%dT%H:%M:%SZ') : @time.iso8601
     end
 
     def to_unix

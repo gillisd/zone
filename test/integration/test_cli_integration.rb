@@ -100,8 +100,10 @@ class TestCliIntegration < Minitest::Test
     )
 
     assert_equal 0, status
-    refute_match(/timestamp/, output)
-    assert_match(/1736937000/, output)
+    lines = output.strip.split("\n")
+    assert_equal 2, lines.count
+    assert_match(/timestamp/, lines[0])  # Header line preserved
+    assert_match(/1736937000/, lines[1])  # Data line
   end
 
   def test_multiple_lines_processing
@@ -290,7 +292,8 @@ class TestCliIntegration < Minitest::Test
     )
 
     assert_equal 0, status
-    assert_empty output.strip
+    # Header line is output even when there's no data
+    assert_match(/name.*timestamp.*value/, output.strip)
   end
 
   def test_time_with_timezone_offset_preserves_timezone
