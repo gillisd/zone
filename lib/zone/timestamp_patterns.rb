@@ -51,6 +51,19 @@ module Zone
     end
 
     #
+    # Check if text contains any timestamp patterns.
+    #
+    # @param [String] text
+    #   The text to check
+    #
+    # @return [Boolean]
+    #   true if text matches any timestamp pattern
+    #
+    def match?(text)
+      patterns.any? { |pattern| pattern.match?(text) }
+    end
+
+    #
     # Replace all timestamp patterns in text.
     #
     # @param [String] text
