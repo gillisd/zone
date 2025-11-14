@@ -47,7 +47,7 @@ module Zone
       on '-p', '--pretty [STYLE]', Integer, 'Pretty format (1=12hr, 2=24hr, 3=ISO-compact, default: 1)' do |style|
         style ||= 1
         unless [1, 2, 3].include?(style)
-          raise OptionParser::InvalidArgument, "invalid argument: -p#{style} (must be 1, 2, or 3)"
+          raise ArgumentError, "Invalid pretty format -p#{style} (must be 1, 2, or 3)"
         end
         @format = { pretty: style }
       end

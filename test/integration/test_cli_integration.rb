@@ -154,6 +154,14 @@ class TestCliIntegration < Minitest::Test
     assert_match(/Could not find timezone/, output)
   end
 
+  def test_invalid_pretty_format_returns_error
+    output, status = run_zone("2025-01-15T10:30:00Z", "-p4")
+
+    refute_equal 0, status
+    assert_match(/Invalid pretty format -p4/, output)
+    assert_match(/must be 1, 2, or 3/, output)
+  end
+
   def test_combined_field_and_zone_conversion
     output, status = run_zone_with_input(
       "data,1736937000,more",

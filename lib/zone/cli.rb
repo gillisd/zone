@@ -38,7 +38,7 @@ module Zone
       else
         process_pattern_mode(input, output, transformation)
       end
-    rescue OptionParser::MissingArgument, OptionParser::InvalidOption => e
+    rescue OptionParser::MissingArgument, OptionParser::InvalidOption, OptionParser::InvalidArgument => e
       $stderr.puts Colors.colors($stderr).red("Error:") + " #{e.message}"
       $stderr.puts "Run 'zone --help' for usage information."
       exit 1
