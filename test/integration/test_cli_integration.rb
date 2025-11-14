@@ -9,13 +9,13 @@ class TestCliIntegration < Minitest::Test
 
   def run_zone(*args)
     escaped_args = args.map { |arg| "'#{arg}'" }.join(" ")
-    output = `#{@zone_bin} #{escaped_args} 2>&1`
+    output = `#{@zone_bin} #{escaped_args} 2>&1`.force_encoding('UTF-8')
     [output, $?.exitstatus]
   end
 
   def run_zone_with_input(input, *args)
     escaped_args = args.map { |arg| "'#{arg}'" }.join(" ")
-    output = `echo "#{input}" | #{@zone_bin} #{escaped_args} 2>&1`
+    output = `echo "#{input}" | #{@zone_bin} #{escaped_args} 2>&1`.force_encoding('UTF-8')
     [output, $?.exitstatus]
   end
 

@@ -57,8 +57,8 @@ module Zone
         l.formatter = ->(severity, _datetime, _progname, message) {
           prefix = case severity
           when "INFO"  then "→"
-          when "WARN"  then "⚠"
-          when "ERROR" then "✗"
+          when "WARN"  then "Warning:"
+          when "ERROR" then "Error:"
           when "DEBUG" then "DEBUG:"
           else "?"
           end
@@ -117,12 +117,22 @@ module Zone
         field_line.transform(options.field, &transformation)
 
         transformed_value = field_line[options.field]
-        output.puts_highlighted(field_line.to_s, highlight: transformed_value) if transformed_value
+        if transformed_value
+          output.puts_highlighted(field_line.to_s, highlight: transformed_value)
+        else
+          @logger.warn("Field '#{options.field}' not found or out of bounds in line: #{line_text}")
+        end
       end
     end
 
     def process_pattern_mode(input, output, transformation)
       input.each_line do |line_text|
+        # Skip empty lines with warning
+        if line_text.empty?
+          @logger.warn("Could not parse time from empty line")
+          next
+        end
+
         matched = false
         result = TimestampPatterns.replace_all(line_text, logger: @logger) do |match, _pattern|
           matched = true
@@ -135,15 +145,20 @@ module Zone
           end
         end
 
-        # If no pattern matched and this looks like a direct timestamp argument,
-        # try to parse it directly and generate an error if it fails
-        if !matched && !result.empty? && input.from_arguments?
-          begin
+        # If no pattern matched, handle based on input source
+        if !matched
+          if input.from_arguments?
+            # Arguments: try to parse directly, error if fails
             formatted = transformation.call(result)
+            if formatted.nil?
+              raise ArgumentError, "Could not parse time '#{result}'"
+            end
             colored = output.colorize_timestamp(formatted)
             output.puts(colored)
-          rescue StandardError => e
-            raise ArgumentError, "Could not parse time '#{result}'"
+          else
+            # Piped input: warn and pass through unchanged
+            @logger.warn("Could not parse time from: #{result}")
+            output.puts(result)
           end
         else
           output.puts(result)
