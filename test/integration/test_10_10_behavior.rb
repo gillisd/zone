@@ -28,7 +28,7 @@ class Test1010Behavior < Minitest::Test
   def test_field_processing_preserves_full_line_with_spaces
     output, status = run_zone_with_input(
       "user1 2025-01-15T10:30:00Z active",
-      "--field", "2", "--unix"
+      "--field", "2", "--delimiter", "/\\s+/", "--unix"
     )
 
     assert_equal 0, status
@@ -38,7 +38,7 @@ class Test1010Behavior < Minitest::Test
   def test_field_processing_preserves_full_line_with_comma
     output, status = run_zone_with_input(
       "Thomas,1901-01-01+19:07Z",
-      "-z", "Tokyo", "--field", "2"
+      "-z", "Tokyo", "--field", "2", "--delimiter", ","
     )
 
     assert_equal 0, status
@@ -49,7 +49,7 @@ class Test1010Behavior < Minitest::Test
   def test_field_processing_with_comma_and_spaces
     output, status = run_zone_with_input(
       "name, 2025-01-15T10:30:00Z, status",
-      "--field", "2", "--pretty"
+      "--field", "2", "--delimiter", ",", "--pretty"
     )
 
     assert_equal 0, status
@@ -61,7 +61,7 @@ class Test1010Behavior < Minitest::Test
     input = "col1\t2025-01-15T10:30:00Z\tcol3"
     output, status = run_zone_with_input(
       input,
-      "--field", "2", "--unix"
+      "--field", "2", "--delimiter", "\t", "--unix"
     )
 
     assert_equal 0, status
@@ -72,7 +72,7 @@ class Test1010Behavior < Minitest::Test
     input = "user1 1736937000 active\nuser2 1736940600 inactive"
     output, status = run_zone_with_input(
       input,
-      "--field", "2", "--pretty"
+      "--field", "2", "--delimiter", "/\\s+/", "--pretty"
     )
 
     assert_equal 0, status
@@ -86,7 +86,7 @@ class Test1010Behavior < Minitest::Test
     input = "user,timestamp,status\nalice,2025-01-15T10:30:00Z,active"
     output, status = run_zone_with_input(
       input,
-      "--headers", "--field", "timestamp", "--unix"
+      "--headers", "--field", "timestamp", "--delimiter", ",", "--unix"
     )
 
     assert_equal 0, status
@@ -105,7 +105,7 @@ class Test1010Behavior < Minitest::Test
   def test_field_1_with_single_field_outputs_just_value
     output, status = run_zone_with_input(
       "2025-01-15T10:30:00Z",
-      "--field", "1", "--unix"
+      "--field", "1", "--delimiter", ",", "--unix"
     )
 
     assert_equal 0, status
@@ -115,7 +115,7 @@ class Test1010Behavior < Minitest::Test
   def test_field_1_with_multiple_fields_preserves_line
     output, status = run_zone_with_input(
       "2025-01-15T10:30:00Z active",
-      "--field", "1", "--unix"
+      "--field", "1", "--delimiter", "/\\s+/", "--unix"
     )
 
     assert_equal 0, status
@@ -130,7 +130,7 @@ class Test1010Behavior < Minitest::Test
   def test_space_delimiter_preserved_in_output
     output, status = run_zone_with_input(
       "a 2025-01-15T10:30:00Z c",
-      "--field", "2", "--unix"
+      "--field", "2", "--delimiter", "/\\s+/", "--unix"
     )
 
     assert_equal 0, status
@@ -141,7 +141,7 @@ class Test1010Behavior < Minitest::Test
   def test_comma_delimiter_becomes_tab_in_output
     output, status = run_zone_with_input(
       "a,2025-01-15T10:30:00Z,c",
-      "--field", "2", "--unix"
+      "--field", "2", "--delimiter", ",", "--unix"
     )
 
     assert_equal 0, status
@@ -168,7 +168,7 @@ class Test1010Behavior < Minitest::Test
     csv = "name,login_time,status\nalice,1736937000,active\nbob,1736940600,inactive"
     output, status = run_zone_with_input(
       csv,
-      "--headers", "--field", "login_time", "--zone", "Tokyo", "--pretty"
+      "--headers", "--field", "login_time", "--delimiter", ",", "--zone", "Tokyo", "--pretty"
     )
 
     assert_equal 0, status
@@ -187,7 +187,7 @@ class Test1010Behavior < Minitest::Test
     log = "[INFO] 1736937000 User logged in\n[ERROR] 1736940600 Connection failed"
     output, status = run_zone_with_input(
       log,
-      "--field", "2", "--pretty"
+      "--field", "2", "--delimiter", "/\\s+/", "--pretty"
     )
 
     assert_equal 0, status
@@ -202,7 +202,7 @@ class Test1010Behavior < Minitest::Test
     tsv = "col1\t1736937000\tcol3\ncol1\t1736940600\tcol3"
     output, status = run_zone_with_input(
       tsv,
-      "--field", "2", "--iso8601"
+      "--field", "2", "--delimiter", "\t", "--iso8601"
     )
 
     assert_equal 0, status
@@ -220,7 +220,7 @@ class Test1010Behavior < Minitest::Test
   def test_field_3_with_spaces
     output, status = run_zone_with_input(
       "a b 1736937000 d e",
-      "--field", "3", "--pretty"
+      "--field", "3", "--delimiter", "/\\s+/", "--pretty"
     )
 
     assert_equal 0, status
@@ -231,7 +231,7 @@ class Test1010Behavior < Minitest::Test
   def test_named_field_with_headers
     output, status = run_zone_with_input(
       "user,timestamp,status\nalice,1736937000,active",
-      "--headers", "--field", "timestamp", "--pretty"
+      "--headers", "--field", "timestamp", "--delimiter", ",", "--pretty"
     )
 
     assert_equal 0, status
@@ -249,7 +249,7 @@ class Test1010Behavior < Minitest::Test
     input = "user1 not-a-time active\nuser2 1736937000 active"
     output, status = run_zone_with_input(
       input,
-      "--field", "2", "--unix"
+      "--field", "2", "--delimiter", "/\\s+/", "--unix"
     )
 
     assert_equal 0, status
@@ -262,7 +262,7 @@ class Test1010Behavior < Minitest::Test
   def test_out_of_bounds_field_handles_gracefully
     output, status = run_zone_with_input(
       "a b c",
-      "--field", "10", "--unix"
+      "--field", "10", "--delimiter", "/\\s+/", "--unix"
     )
 
     # Should either skip or handle gracefully
@@ -277,7 +277,7 @@ class Test1010Behavior < Minitest::Test
   def test_unix_to_pretty_with_field_preservation
     output, status = run_zone_with_input(
       "event1 1736937000 completed",
-      "--field", "2", "--pretty", "--zone", "UTC"
+      "--field", "2", "--delimiter", "/\\s+/", "--pretty", "--zone", "UTC"
     )
 
     assert_equal 0, status
@@ -287,7 +287,7 @@ class Test1010Behavior < Minitest::Test
   def test_iso8601_to_unix_with_field_preservation
     output, status = run_zone_with_input(
       "evt 2025-01-15T10:30:00Z done",
-      "--field", "2", "--unix"
+      "--field", "2", "--delimiter", "/\\s+/", "--unix"
     )
 
     assert_equal 0, status
@@ -301,7 +301,7 @@ class Test1010Behavior < Minitest::Test
   def test_multiple_spaces_collapsed_to_one
     output, status = run_zone_with_input(
       "a    2025-01-15T10:30:00Z    c",
-      "--field", "2", "--unix"
+      "--field", "2", "--delimiter", "/\\s+/", "--unix"
     )
 
     assert_equal 0, status
@@ -312,7 +312,7 @@ class Test1010Behavior < Minitest::Test
   def test_leading_trailing_whitespace_in_fields
     output, status = run_zone_with_input(
       "  a  ,  2025-01-15T10:30:00Z  ,  c  ",
-      "--field", "2", "--unix"
+      "--field", "2", "--delimiter", ",", "--unix"
     )
 
     assert_equal 0, status

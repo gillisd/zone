@@ -63,7 +63,14 @@ module Zone
     end
 
     def to_s
-      output_delim = (@delimiter in Regexp) ? "\t" : @delimiter
+      output_delim = case @delimiter
+      when Regexp
+        "\t"
+      when ","
+        "\t"
+      else
+        @delimiter
+      end
 
       case @fields.count
       in 1

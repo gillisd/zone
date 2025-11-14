@@ -13,7 +13,7 @@ module Zone
       @field = nil
       @delimiter = nil
       @zone = 'local'
-      @format = { pretty: 1 }
+      @format = :to_iso8601
       @color = 'auto'
       @headers = false
       @verbose = false

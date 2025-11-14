@@ -68,7 +68,7 @@ class TestFieldLine < Minitest::Test
     result = line.transform(2) { |v| v.upcase }
 
     assert_same line, result
-    assert_equal "foo,BAR,baz", line.to_s
+    assert_equal "foo\tBAR\tbaz", line.to_s
   end
 
   def test_transform_by_name
@@ -81,20 +81,20 @@ class TestFieldLine < Minitest::Test
 
     line.transform("value") { |v| (v.to_i * 2).to_s }
 
-    assert_equal "test,200", line.to_s
+    assert_equal "test\t200", line.to_s
   end
 
   def test_transform_all_fields
     line = Zone::FieldLine.parse("a,b,c", delimiter: ",")
     line.transform_all(&:upcase)
 
-    assert_equal "A,B,C", line.to_s
+    assert_equal "A\tB\tC", line.to_s
   end
 
   def test_to_s_reconstructs_line
     line = Zone::FieldLine.parse("foo,bar,baz", delimiter: ",")
 
-    assert_equal "foo,bar,baz", line.to_s
+    assert_equal "foo\tbar\tbaz", line.to_s
   end
 
   def test_to_s_single_field
@@ -142,6 +142,6 @@ class TestFieldLine < Minitest::Test
       .transform(3, &:upcase)
 
     assert_same line, result
-    assert_equal "A,B,C", line.to_s
+    assert_equal "A\tB\tC", line.to_s
   end
 end
