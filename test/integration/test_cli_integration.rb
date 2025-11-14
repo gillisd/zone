@@ -292,4 +292,25 @@ class TestCliIntegration < Minitest::Test
     assert_equal 0, status
     assert_empty output.strip
   end
+
+  def test_time_with_timezone_offset_preserves_timezone
+    # Critical regression test: ensure timezone offset is not stripped during pattern matching
+    # Bug was: "2025-01-15 16:30:00 -0500" would match as "2025-01-15 16:30:00" (no offset)
+    # and be parsed as UTC, resulting in 5-hour error when converting to EST
+    output, status = run_zone("2025-01-15 16:30:00 -0500", "--zone", "America/New_York")
+
+    assert_equal 0, status
+    # Should show 4:30 PM (16:30), not 11:30 AM (5 hours earlier)
+    assert_match(/4:30 PM/, output)
+    assert_match(/EST/, output)
+  end
+
+  def test_time_with_timezone_offset_to_iso8601
+    # Verify timezone offset is preserved in parsing and conversion
+    output, status = run_zone("2025-01-15 16:30:00 -0500", "--iso8601", "--zone", "UTC")
+
+    assert_equal 0, status
+    # -0500 is EST, which is UTC+5, so 16:30 EST = 21:30 UTC
+    assert_match(/2025-01-15T21:30:00/, output)
+  end
 end

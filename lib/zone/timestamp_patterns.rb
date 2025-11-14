@@ -18,28 +18,32 @@ module Zone
     # ISO 8601 with Zulu (UTC) timezone (e.g., 2025-01-15T10:30:00Z)
     P02_ISO8601_ZULU = /\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\b/
 
-    # ISO 8601 with space separator (e.g., 2025-01-15 10:30:00) - common SQL/database format
-    P03_ISO8601_SPACE = /\b\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?\b/
+    # ISO 8601 with space separator and offset (e.g., 2025-01-15 10:30:00 -0500) - Ruby Time.now.to_s format
+    P03_ISO8601_SPACE_WITH_OFFSET = /\b\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)? [+-]\d{4}\b/
+
+    # ISO 8601 with space separator, no timezone (e.g., 2025-01-15 10:30:00) - common SQL/database format
+    # Use negative lookahead to ensure not followed by timezone offset
+    P04_ISO8601_SPACE = /\b\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?(?! [+-]\d)/
 
     # Zone pretty1 format: 12hr with AM/PM (e.g., "Jan 15, 2025 - 10:30 AM UTC" or "Jan 15, 2025 -  1:30 AM UTC")
-    P04_PRETTY1_12HR = /\b[A-Z][a-z]{2} \d{2}, \d{4} - \s?\d{1,2}:\d{2} [AP]M [A-Z]{3,4}\b/
+    P05_PRETTY1_12HR = /\b[A-Z][a-z]{2} \d{2}, \d{4} - \s?\d{1,2}:\d{2} [AP]M [A-Z]{3,4}\b/
 
     # Zone pretty2 format: 24hr without AM/PM (e.g., "Jan 15, 2025 - 10:30 UTC")
-    P05_PRETTY2_24HR = /\b[A-Z][a-z]{2} \d{2}, \d{4} - \d{2}:\d{2} [A-Z]{3,4}\b/
+    P06_PRETTY2_24HR = /\b[A-Z][a-z]{2} \d{2}, \d{4} - \d{2}:\d{2} [A-Z]{3,4}\b/
 
     # Zone pretty3 format: ISO-style compact (e.g., "2025-01-15 10:30 UTC")
-    P06_PRETTY3_ISO = /\b\d{4}-\d{2}-\d{2} \d{2}:\d{2} [A-Z]{3,4}\b/
+    P07_PRETTY3_ISO = /\b\d{4}-\d{2}-\d{2} \d{2}:\d{2} [A-Z]{3,4}\b/
 
     # Unix timestamp (10 digits, 2001-2036, e.g., 1736937000)
     # Matches timestamps starting with 1 (2001-2033) or 20-21 (2033-2039)
     # Avoids false positives from phone numbers, order IDs, etc.
-    P07_UNIX_TIMESTAMP = /(?<!\d)(?:1\d{9}|2[0-1]\d{8})(?!\d)/
+    P08_UNIX_TIMESTAMP = /(?<!\d)(?:1\d{9}|2[0-1]\d{8})(?!\d)/
 
     # Relative time expressions (e.g., "5 hours ago", "3 days from now")
-    P08_RELATIVE_TIME = /\b\d+\s+(?:second|minute|hour|day|week|month|year)s?\s+(?:ago|from now)\b/i
+    P09_RELATIVE_TIME = /\b\d+\s+(?:second|minute|hour|day|week|month|year)s?\s+(?:ago|from now)\b/i
 
     # Date command output format (e.g., "Wed Nov 12 19:13:17 UTC 2025")
-    P09_DATE_COMMAND = /\b[A-Z][a-z]{2} [A-Z][a-z]{2} \d{2} \d{2}:\d{2}:\d{2} [A-Z]{3,4} \d{4}\b/
+    P10_DATE_COMMAND = /\b[A-Z][a-z]{2} [A-Z][a-z]{2} \d{2} \d{2}:\d{2}:\d{2} [A-Z]{3,4} \d{4}\b/
 
     module_function
 
@@ -138,7 +142,7 @@ module Zone
     #   true if valid timestamp
     #
     def valid_timestamp?(str, pattern)
-      return valid_unix?(str) if pattern == P07_UNIX_TIMESTAMP
+      return valid_unix?(str) if pattern == P08_UNIX_TIMESTAMP
       true
     end
 
