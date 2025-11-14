@@ -7,39 +7,32 @@ module Zone
   module Logging
     module_function
 
-    #
-    # Build a logger for Zone CLI.
-    #
-    # @param [Boolean] verbose
-    #   Enable debug-level logging
-    #
-    # @return [Logger]
-    #   Configured logger instance
-    #
     def build(verbose:)
       Logger.new($stderr).tap do |l|
-        l.formatter = ->(severity, _datetime, _progname, message) {
-          prefix = case severity
-          in "INFO"  then "→"
-          in "WARN"  then "⚠"
-          in "ERROR" then "✗"
-          in "DEBUG" then "DEBUG:"
-          else "?"
-          end
-
-          formatted = "#{prefix} #{message}"
-
-          colored = case severity
-          in "INFO"  then Colors.colors($stderr).cyan(formatted)
-          in "WARN"  then Colors.colors($stderr).yellow(formatted)
-          in "ERROR" then Colors.colors($stderr).red(formatted)
-          else formatted
-          end
-
-          "#{colored}\n"
-        }
+        l.formatter = formatter
         l.level = verbose ? Logger::DEBUG : Logger::WARN
       end
     end
+
+    def formatter
+      ->(severity, _datetime, _progname, message) {
+        prefix, color = log_style(severity)
+        formatted = "#{prefix} #{message}"
+        colored = color ? Colors.colors($stderr).send(color, formatted) : formatted
+        "#{colored}\n"
+      }
+    end
+    private_class_method :formatter
+
+    def log_style(severity)
+      case severity
+      in "INFO"  then ["→", :cyan]
+      in "WARN"  then ["⚠", :yellow]
+      in "ERROR" then ["✗", :red]
+      in "DEBUG" then ["DEBUG:", nil]
+      else ["?", nil]
+      end
+    end
+    private_class_method :log_style
   end
 end

@@ -7,58 +7,30 @@ module Zone
   module Field
     module_function
 
-    #
-    # Process input in field mode.
-    #
-    # Extracts specific field from delimited data and transforms it.
-    #
-    # @param [Input] input
-    #   Input source
-    #
-    # @param [Output] output
-    #   Output destination
-    #
-    # @param [Proc] transformation
-    #   Transformation lambda from Transform.build
-    #
-    # @param [Options] options
-    #   Parsed options (needs field, delimiter, headers)
-    #
-    # @param [Logger] logger
-    #   Logger instance
-    #
     def process(input, output, transformation, options, logger)
       mapping = build_mapping(input, options)
 
-      input.each_line do |line_text|
-        next if input.skip_headers?
-
-        field_line = FieldLine.parse(
-          line_text,
-          delimiter: options.delimiter,
-          mapping: mapping,
-          logger: logger
-        )
-
-        field_line.transform(options.field, &transformation)
-
-        transformed_value = field_line[options.field]
-        if transformed_value
-          output.puts_highlighted(field_line.to_s, highlight: transformed_value)
-        else
-          logger.warn("Field '#{options.field}' not found or out of bounds in line: #{line_text}")
-        end
+      input.each_line do |line|
+        process_line(line, input.skip_headers?, output, transformation, options, mapping, logger)
       end
     end
 
-    #
-    # Build field mapping from headers if needed.
-    #
-    # @param [Input] input
-    # @param [Options] options
-    #
-    # @return [FieldMapping]
-    #
+    def process_line(line, skip, output, transformation, options, mapping, logger)
+      return if skip
+
+      field_line = FieldLine
+        .parse(line, delimiter: options.delimiter, mapping: mapping, logger: logger)
+        .transform(options.field, &transformation)
+
+      case field_line[options.field]
+      in nil
+        logger.warn("Field '#{options.field}' not found or out of bounds in line: #{line}")
+      in value
+        output.puts_highlighted(field_line.to_s, highlight: value)
+      end
+    end
+    private_class_method :process_line
+
     def build_mapping(input, options)
       return FieldMapping.numeric unless options.headers
 
