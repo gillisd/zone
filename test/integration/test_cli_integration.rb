@@ -20,14 +20,14 @@ class TestCliIntegration < Minitest::Test
   end
 
   def test_convert_timestamp_to_utc
-    output, status = run_zone("2025-01-15T10:30:00Z", "--utc")
+    output, status = run_zone("2025-01-15T10:30:00Z", "--utc", "--iso8601")
 
     assert_equal 0, status
     assert_match(/2025-01-15T10:30:00/, output)
   end
 
   def test_convert_timestamp_to_specific_zone
-    output, status = run_zone("2025-01-15T10:30:00Z", "--zone", "Tokyo")
+    output, status = run_zone("2025-01-15T10:30:00Z", "--zone", "Tokyo", "--iso8601")
 
     assert_equal 0, status
     assert_match(/2025-01-15T19:30:00/, output)
@@ -37,7 +37,7 @@ class TestCliIntegration < Minitest::Test
     output, status = run_zone("1736937000", "--zone", "UTC")
 
     assert_equal 0, status
-    assert_match(/2025-01-15/, output)
+    assert_match(/Jan 15, 2025/, output)
   end
 
   def test_pretty_format_output
@@ -120,7 +120,7 @@ class TestCliIntegration < Minitest::Test
   end
 
   def test_fuzzy_timezone_search
-    output, status = run_zone("2025-01-15T10:30:00Z", "--zone", "tokyo")
+    output, status = run_zone("2025-01-15T10:30:00Z", "--zone", "tokyo", "--iso8601")
 
     assert_equal 0, status
     assert_match(/2025-01-15T19:30:00/, output)
@@ -130,7 +130,7 @@ class TestCliIntegration < Minitest::Test
     output, status = run_zone("2025-01-15T10:30:00Z", "--local")
 
     assert_equal 0, status
-    assert_match(/2025-01-15/, output)
+    assert_match(/Jan 15, 2025/, output)
   end
 
   def test_verbose_logging
@@ -157,7 +157,7 @@ class TestCliIntegration < Minitest::Test
   def test_combined_field_and_zone_conversion
     output, status = run_zone_with_input(
       "data,1736937000,more",
-      "--field", "2", "--zone", "Tokyo", "--delimiter", ","
+      "--field", "2", "--zone", "Tokyo", "--delimiter", ",", "--iso8601"
     )
 
     assert_equal 0, status
@@ -166,7 +166,7 @@ class TestCliIntegration < Minitest::Test
   end
 
   def test_date_command_format_with_spaces
-    output, status = run_zone("Wed Nov 12 19:13:17 UTC 2025", "--utc")
+    output, status = run_zone("Wed Nov 12 19:13:17 UTC 2025", "--utc", "--iso8601")
 
     assert_equal 0, status
     assert_match(/2025-11-12T19:13:17/, output)
@@ -175,7 +175,7 @@ class TestCliIntegration < Minitest::Test
   def test_piped_date_format
     output, status = run_zone_with_input(
       "Wed Nov 12 19:13:17 UTC 2025",
-      "--utc"
+      "--utc", "--iso8601"
     )
 
     assert_equal 0, status
@@ -186,12 +186,12 @@ class TestCliIntegration < Minitest::Test
     output, status = run_zone("Wed Nov 12 14:11:40 EST 2025", "--utc")
 
     assert_equal 0, status
-    assert_match(/2025-11-12/, output)
+    assert_match(/Nov 12, 2025/, output)
   end
 
   def test_multiline_date_formats
     input = "Wed Nov 12 10:30:00 UTC 2025\nThu Nov 13 11:45:00 UTC 2025"
-    output, status = run_zone_with_input(input, "--utc")
+    output, status = run_zone_with_input(input, "--utc", "--iso8601")
 
     assert_equal 0, status
     lines = output.split("\n")
@@ -202,7 +202,7 @@ class TestCliIntegration < Minitest::Test
 
   def test_field_processing_not_triggered_by_default
     # Ensure spaces in timestamp don't cause field splitting
-    output, status = run_zone("2025-01-15 10:30:00", "--utc")
+    output, status = run_zone("2025-01-15 10:30:00", "--utc", "--iso8601")
 
     assert_equal 0, status
     assert_match(/2025-01-15T10:30:00/, output)
@@ -228,7 +228,7 @@ class TestCliIntegration < Minitest::Test
     output, status = run_zone(
       "2025-01-15T10:30:00Z",
       "2025-01-16T11:00:00Z",
-      "--utc"
+      "--utc", "--iso8601"
     )
 
     assert_equal 0, status
@@ -247,7 +247,7 @@ class TestCliIntegration < Minitest::Test
 
   def test_mixed_valid_and_invalid_timestamps
     input = "2025-01-15T10:30:00Z\ninvalid\n2025-01-16T10:30:00Z"
-    output, status = run_zone_with_input(input, "--utc")
+    output, status = run_zone_with_input(input, "--utc", "--iso8601")
 
     assert_equal 0, status
     assert_match(/2025-01-15T10:30:00/, output)

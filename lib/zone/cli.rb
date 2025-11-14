@@ -123,17 +123,31 @@ module Zone
 
     def process_pattern_mode(input, output, transformation)
       input.each_line do |line_text|
+        matched = false
         result = TimestampPatterns.replace_all(line_text, logger: @logger) do |match, _pattern|
+          matched = true
           begin
             formatted = transformation.call(match)
             output.colorize_timestamp(formatted)
           rescue StandardError => e
-            @logger.debug("Failed to transform '#{match}': #{e.message}")
+            @logger.warn("Could not parse time: #{e.message}")
             match
           end
         end
 
-        output.puts(result)
+        # If no pattern matched and this looks like a direct timestamp argument,
+        # try to parse it directly and generate an error if it fails
+        if !matched && !result.empty? && input.from_arguments?
+          begin
+            formatted = transformation.call(result)
+            colored = output.colorize_timestamp(formatted)
+            output.puts(colored)
+          rescue StandardError => e
+            raise ArgumentError, "Could not parse time '#{result}'"
+          end
+        else
+          output.puts(result)
+        end
       end
     end
 

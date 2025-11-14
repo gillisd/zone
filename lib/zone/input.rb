@@ -27,22 +27,25 @@ module Zone
       @skip_first = true
     end
 
+    def from_arguments?
+      @argv.any?
+    end
+
     private
 
     def source
       @source ||= begin
-        if timestamps_from_arguments?
+        if @argv.any?
+          # Arguments provided - use them as timestamps
           @argv
-        elsif @argv.any? || !@stdin.tty?
+        elsif !@stdin.tty?
+          # No arguments but stdin is piped - read from stdin
           @stdin.each_line(chomp: true)
         else
+          # Interactive mode with no arguments - use current time
           [Time.now.to_s]
         end
       end
-    end
-
-    def timestamps_from_arguments?
-      @argv.any? && @argv.all? { |arg| TimestampPatterns.match?(arg) }
     end
   end
 end
