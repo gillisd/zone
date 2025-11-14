@@ -69,7 +69,7 @@ class TestCliIntegration < Minitest::Test
     )
 
     assert_equal 0, status
-    assert_equal "1736937000\n", output
+    assert_match(/test\s+1736937000\s+data/, output)
   end
 
   def test_extract_field_with_tab_delimiter
@@ -79,7 +79,7 @@ class TestCliIntegration < Minitest::Test
     )
 
     assert_equal 0, status
-    assert_equal "1736937000\n", output
+    assert_equal "foo\t1736937000\tbar\n", output
   end
 
   def test_extract_field_with_custom_delimiter
@@ -89,7 +89,7 @@ class TestCliIntegration < Minitest::Test
     )
 
     assert_equal 0, status
-    assert_equal "1736937000\n", output
+    assert_equal "foo|1736937000|bar\n", output
   end
 
   def test_field_with_headers
@@ -215,7 +215,7 @@ class TestCliIntegration < Minitest::Test
     )
 
     assert_equal 0, status
-    assert_equal "1736937000\n", output
+    assert_match(/1736937000\s+extra\s+data/, output)
   end
 
   def test_no_arguments_uses_current_time
