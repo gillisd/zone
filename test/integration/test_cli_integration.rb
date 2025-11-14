@@ -242,7 +242,7 @@ class TestCliIntegration < Minitest::Test
     output, status = run_zone_with_input("", "--utc")
 
     assert_equal 0, status
-    assert_match(/Warning.*Could not parse/, output)
+    assert_match(/⚠.*Could not parse/, output)
   end
 
   def test_mixed_valid_and_invalid_timestamps
@@ -252,7 +252,7 @@ class TestCliIntegration < Minitest::Test
     assert_equal 0, status
     assert_match(/2025-01-15T10:30:00/, output)
     assert_match(/2025-01-16T10:30:00/, output)
-    assert_match(/Warning/, output)
+    assert_match(/⚠/, output)
   end
 
   def test_out_of_bounds_field_index_warns
@@ -262,7 +262,7 @@ class TestCliIntegration < Minitest::Test
     )
 
     assert_equal 0, status
-    assert_match(/Warning/, output)
+    assert_match(/⚠/, output)
   end
 
   def test_nonexistent_field_name_returns_error

@@ -57,8 +57,8 @@ module Zone
         l.formatter = ->(severity, _datetime, _progname, message) {
           prefix = case severity
           when "INFO"  then "→"
-          when "WARN"  then "Warning:"
-          when "ERROR" then "Error:"
+          when "WARN"  then "⚠"
+          when "ERROR" then "✗"
           when "DEBUG" then "DEBUG:"
           else "?"
           end
