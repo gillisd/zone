@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative 'timestamp'
-require_relative '../zone'
 
 module Zone
   module Transform

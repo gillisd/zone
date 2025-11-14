@@ -9,7 +9,6 @@ require_relative 'field_line'
 require_relative 'field_mapping'
 require_relative 'timestamp_patterns'
 require_relative 'colors'
-require_relative '../zone'
 
 module Zone
   class CLI
