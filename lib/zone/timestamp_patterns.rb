@@ -42,8 +42,11 @@ module Zone
     # Relative time expressions (e.g., "5 hours ago", "3 days from now")
     P09_RELATIVE_TIME = /\b\d+\s+(?:second|minute|hour|day|week|month|year)s?\s+(?:ago|from now)\b/i
 
+    # Git log format (e.g., "Fri Nov 14 23:48:24 2025 +0000")
+    P10_GIT_LOG = /\b[A-Z][a-z]{2} [A-Z][a-z]{2} \d{2} \d{2}:\d{2}:\d{2} \d{4} [+-]\d{4}\b/
+
     # Date command output format (e.g., "Wed Nov 12 19:13:17 UTC 2025")
-    P10_DATE_COMMAND = /\b[A-Z][a-z]{2} [A-Z][a-z]{2} \d{2} \d{2}:\d{2}:\d{2} [A-Z]{3,4} \d{4}\b/
+    P11_DATE_COMMAND = /\b[A-Z][a-z]{2} [A-Z][a-z]{2} \d{2} \d{2}:\d{2}:\d{2} [A-Z]{3,4} \d{4}\b/
 
     module_function
 
