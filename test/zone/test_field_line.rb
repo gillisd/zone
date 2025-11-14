@@ -4,20 +4,20 @@ require "test_helper"
 
 class TestFieldLine < Minitest::Test
   def test_parse_simple_comma_delimited
-    line = Zone::FieldLine.parse("foo,bar,baz")
+    line = Zone::FieldLine.parse("foo,bar,baz", delimiter: ",")
 
     assert_instance_of Zone::FieldLine, line
     assert_equal ["foo", "bar", "baz"], line.fields
   end
 
   def test_parse_tab_delimited
-    line = Zone::FieldLine.parse("foo\tbar\tbaz")
+    line = Zone::FieldLine.parse("foo\tbar\tbaz", delimiter: "\t")
 
     assert_equal ["foo", "bar", "baz"], line.fields
   end
 
   def test_parse_whitespace_delimited
-    line = Zone::FieldLine.parse("foo  bar   baz")
+    line = Zone::FieldLine.parse("foo  bar   baz", delimiter: "/\\s+/")
 
     assert_equal ["foo", "bar", "baz"], line.fields
   end
@@ -35,6 +35,7 @@ class TestFieldLine < Minitest::Test
     mapping = Zone::FieldMapping.from_fields(["name", "value"])
     line = Zone::FieldLine.parse(
       "test,100",
+      delimiter: ",",
       mapping: mapping
     )
 
@@ -43,7 +44,7 @@ class TestFieldLine < Minitest::Test
   end
 
   def test_bracket_access_by_index
-    line = Zone::FieldLine.parse("a,b,c")
+    line = Zone::FieldLine.parse("a,b,c", delimiter: ",")
 
     assert_equal "a", line[1]
     assert_equal "b", line[2]
@@ -54,6 +55,7 @@ class TestFieldLine < Minitest::Test
     mapping = Zone::FieldMapping.from_fields(["x", "y"])
     line = Zone::FieldLine.parse(
       "10,20",
+      delimiter: ",",
       mapping: mapping
     )
 
@@ -62,7 +64,7 @@ class TestFieldLine < Minitest::Test
   end
 
   def test_transform_by_index
-    line = Zone::FieldLine.parse("foo,bar,baz")
+    line = Zone::FieldLine.parse("foo,bar,baz", delimiter: ",")
     result = line.transform(2) { |v| v.upcase }
 
     assert_same line, result
@@ -73,6 +75,7 @@ class TestFieldLine < Minitest::Test
     mapping = Zone::FieldMapping.from_fields(["name", "value"])
     line = Zone::FieldLine.parse(
       "test,100",
+      delimiter: ",",
       mapping: mapping
     )
 
@@ -82,32 +85,32 @@ class TestFieldLine < Minitest::Test
   end
 
   def test_transform_all_fields
-    line = Zone::FieldLine.parse("a,b,c")
+    line = Zone::FieldLine.parse("a,b,c", delimiter: ",")
     line.transform_all(&:upcase)
 
     assert_equal "A,B,C", line.to_s
   end
 
   def test_to_s_reconstructs_line
-    line = Zone::FieldLine.parse("foo,bar,baz")
+    line = Zone::FieldLine.parse("foo,bar,baz", delimiter: ",")
 
     assert_equal "foo,bar,baz", line.to_s
   end
 
   def test_to_s_single_field
-    line = Zone::FieldLine.parse("2025-01-15T10:30:00Z")
+    line = Zone::FieldLine.parse("2025-01-15T10:30:00Z", delimiter: ",")
 
     assert_equal "2025-01-15T10:30:00Z", line.to_s
   end
 
   def test_to_s_uses_tab_for_regex_delimiter
-    line = Zone::FieldLine.parse("foo  bar   baz")
+    line = Zone::FieldLine.parse("foo  bar   baz", delimiter: "/\\s+/")
 
     assert_match(/\t/, line.to_s)
   end
 
   def test_to_a_returns_fields_array
-    line = Zone::FieldLine.parse("a,b,c")
+    line = Zone::FieldLine.parse("a,b,c", delimiter: ",")
 
     assert_equal ["a", "b", "c"], line.to_a
   end
@@ -116,6 +119,7 @@ class TestFieldLine < Minitest::Test
     mapping = Zone::FieldMapping.from_fields(["x", "y", "z"])
     line = Zone::FieldLine.parse(
       "1,2,3",
+      delimiter: ",",
       mapping: mapping
     )
 
@@ -124,13 +128,13 @@ class TestFieldLine < Minitest::Test
   end
 
   def test_to_h_without_mapping_returns_empty
-    line = Zone::FieldLine.parse("a,b,c")
+    line = Zone::FieldLine.parse("a,b,c", delimiter: ",")
 
     assert_empty line.to_h
   end
 
   def test_chainable_transformations
-    line = Zone::FieldLine.parse("a,b,c")
+    line = Zone::FieldLine.parse("a,b,c", delimiter: ",")
 
     result = line
       .transform(1, &:upcase)

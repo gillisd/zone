@@ -143,10 +143,8 @@ module Zone
       input.mark_skip_headers!
       header_line = input.each_line.first
 
-      fields = FieldLine.split_line(
-        header_line,
-        FieldLine.parse_delimiter(options.delimiter)
-      )
+      parsed = FieldLine.parse_delimiter(options.delimiter)
+      fields = FieldLine.split_line(header_line, parsed)
 
       FieldMapping.from_fields(fields.map(&:strip))
     end
