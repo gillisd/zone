@@ -65,7 +65,7 @@ class TestCliIntegration < Minitest::Test
   def test_extract_field_by_index
     output, status = run_zone_with_input(
       "test 1736937000 data",
-      "--field", "2", "--unix"
+      "--field", "2", "--delimiter", "/\\s+/", "--unix"
     )
 
     assert_equal 0, status
@@ -75,7 +75,7 @@ class TestCliIntegration < Minitest::Test
   def test_extract_field_with_tab_delimiter
     output, status = run_zone_with_input(
       "foo\t1736937000\tbar",
-      "--field", "2", "--unix"
+      "--field", "2", "--delimiter", "\t", "--unix"
     )
 
     assert_equal 0, status
@@ -96,7 +96,7 @@ class TestCliIntegration < Minitest::Test
     input = "timestamp,value,name\n1736937000,100,test"
     output, status = run_zone_with_input(
       input,
-      "--field", "timestamp", "--headers", "--unix"
+      "--field", "timestamp", "--delimiter", ",", "--headers", "--unix"
     )
 
     assert_equal 0, status
@@ -211,7 +211,7 @@ class TestCliIntegration < Minitest::Test
   def test_explicit_field_1_still_works
     output, status = run_zone_with_input(
       "1736937000 extra data",
-      "--field", "1", "--unix"
+      "--field", "1", "--delimiter", "/\\s+/", "--unix"
     )
 
     assert_equal 0, status
@@ -278,7 +278,7 @@ class TestCliIntegration < Minitest::Test
   def test_headers_only_input_produces_no_output
     output, status = run_zone_with_input(
       "name,timestamp,value",
-      "--field", "timestamp", "--headers"
+      "--field", "timestamp", "--delimiter", ",", "--headers"
     )
 
     assert_equal 0, status

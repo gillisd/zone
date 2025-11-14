@@ -14,7 +14,8 @@ module Zone
     end
 
     def puts_highlighted(text, highlight:)
-      output = text.sub(highlight, @colors.cyan(highlight))
+      highlight_str = highlight.to_s
+      output = text.sub(highlight_str, @colors.cyan(highlight_str))
       @stream.puts(output)
     end
 

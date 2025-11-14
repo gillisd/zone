@@ -74,7 +74,7 @@ module Zone
 
       case @fields.count
       in 1
-        @fields[0]
+        @fields[0].to_s
       else
         @fields.join(output_delim)
       end
