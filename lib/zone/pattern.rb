@@ -15,7 +15,8 @@ module Zone
     def process_line(line, from_arguments, output, transformation, logger)
       case line
       in ""
-        logger.warn("Could not parse time from empty line")
+        logger.warn("Could not parse time from empty line") if from_arguments
+        output.puts(line) unless from_arguments
       else
         result = replace_timestamps(line, output, transformation, logger)
 
@@ -23,7 +24,6 @@ module Zone
         in [true, true]
           parse_as_argument(line, output, transformation)
         in [true, false]
-          logger.warn("Could not parse time from: #{line}")
           output.puts(line)
         in [false, _]
           output.puts(result)

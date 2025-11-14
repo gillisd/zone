@@ -248,11 +248,12 @@ class TestCliIntegration < Minitest::Test
     assert_match(/2025-01-16T11:00:00/, lines[1])
   end
 
-  def test_empty_line_input_skipped_with_warning
+  def test_empty_line_input_passes_through
     output, status = run_zone_with_input("", "--utc")
 
     assert_equal 0, status
-    assert_match(/⚠.*Could not parse/, output)
+    # Piped empty line passes through silently, no warning
+    assert_equal "\n", output
   end
 
   def test_mixed_valid_and_invalid_timestamps
@@ -260,9 +261,12 @@ class TestCliIntegration < Minitest::Test
     output, status = run_zone_with_input(input, "--utc", "--iso8601")
 
     assert_equal 0, status
+    # Timestamps are converted
     assert_match(/2025-01-15T10:30:00/, output)
     assert_match(/2025-01-16T10:30:00/, output)
-    assert_match(/⚠/, output)
+    # Non-matching line passes through silently (no warning for piped input)
+    assert_match(/invalid/, output)
+    refute_match(/⚠/, output)
   end
 
   def test_out_of_bounds_field_index_warns
