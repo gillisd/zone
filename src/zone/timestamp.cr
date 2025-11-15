@@ -31,7 +31,13 @@ module Zone
                 begin
                   Time.parse(input, "%Y-%m-%d+%H:%M%z", Time::Location::UTC)
                 rescue
-                  Time.parse(input, "%Y-%m-%d %H:%M:%S", Time::Location.load("Local"))
+                  begin
+                    # Try with timezone offset first
+                    Time.parse(input, "%Y-%m-%d %H:%M:%S %z", Time::Location::UTC)
+                  rescue
+                    # Fall back to parsing as local time without offset
+                    Time.parse(input, "%Y-%m-%d %H:%M:%S", Time::Location.load("Local"))
+                  end
                 end
               end
             end
