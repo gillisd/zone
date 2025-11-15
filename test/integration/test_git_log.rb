@@ -107,4 +107,26 @@ class TestGitLogIntegration < Minitest::Test
     assert_match(/5:00 PM EST/, lines[3])  # 22:00 UTC = 17:00 EST
     assert_match(/4:00 PM EST/, lines[6])  # 21:00 UTC = 16:00 EST
   end
+
+  def test_git_log_does_not_corrupt_commit_hashes
+    # Commit hash 18cb3e41e88aa1ebe1785815368ac12500a818e8 contains "1785815368"
+    # which is a valid unix timestamp (Aug 03, 2026). The hash should NOT be converted
+    # because it's part of a hexadecimal string.
+    input = <<~GIT
+      commit 18cb3e41e88aa1ebe1785815368ac12500a818e8
+      Author: Test User <test@example.com>
+      Date:   Fri Nov 14 10:00:00 2025 +0000
+
+          Fix handling of timestamps in git logs
+    GIT
+
+    output, status = run_zone_with_input(input, "--zone", "EST")
+
+    assert_equal 0, status
+    # Commit hash should remain intact (not corrupted by timestamp conversion)
+    assert_match(/commit 18cb3e41e88aa1ebe1785815368ac12500a818e8/, output)
+    # Date line should still be converted
+    assert_match(/Nov 14, 2025/, output)
+    assert_match(/5:00 AM EST/, output)
+  end
 end

@@ -36,8 +36,9 @@ module Zone
 
     # Unix timestamp (10 digits, 2001-2036, e.g., 1736937000)
     # Matches timestamps starting with 1 (2001-2033) or 20-21 (2033-2039)
-    # Avoids false positives from phone numbers, order IDs, etc.
-    P08_UNIX_TIMESTAMP = /(?<!\d)(?:1\d{9}|2[0-1]\d{8})(?!\d)/
+    # Avoids false positives from phone numbers, order IDs, hex strings (commit hashes), etc.
+    # Uses hex boundary check to prevent matching within commit hashes
+    P08_UNIX_TIMESTAMP = /(?<![0-9a-fA-F])(?:1\d{9}|2[0-1]\d{8})(?![0-9a-fA-F])/
 
     # Relative time expressions (e.g., "5 hours ago", "3 days from now")
     P09_RELATIVE_TIME = /\b\d+\s+(?:second|minute|hour|day|week|month|year)s?\s+(?:ago|from now)\b/i
