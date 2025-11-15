@@ -16,7 +16,23 @@ module Zone
           # Git log format: "Fri Nov 14 14:54:35 2025 -0500"
           parse_git_log(match)
         else
-          Time.parse_rfc3339(input) rescue Time.parse(input, "%Y-%m-%dT%H:%M:%S%z", Time::Location::UTC) rescue Time.parse(input, "%Y-%m-%d %H:%M:%S", Time::Location.local)
+          begin
+            Time.parse_rfc3339(input)
+          rescue
+            begin
+              Time.parse(input, "%Y-%m-%dT%H:%M:%S%z", Time::Location::UTC)
+            rescue
+              begin
+                Time.parse(input, "%Y-%m-%d+%H:%MZ", Time::Location::UTC)
+              rescue
+                begin
+                  Time.parse(input, "%Y-%m-%d+%H:%M%z", Time::Location::UTC)
+                rescue
+                  Time.parse(input, "%Y-%m-%d %H:%M:%S", Time::Location.load("Local"))
+                end
+              end
+            end
+          end
         end
       else
         raise ArgumentError.new("Unsupported input type")
@@ -58,9 +74,12 @@ module Zone
     end
 
     def to_iso8601 : String
-      # Use custom format to preserve timezone offset
-      # %:z includes the colon in the offset (e.g., +09:00 instead of +0900)
-      @time.to_s("%Y-%m-%dT%H:%M:%S%:z")
+      # Use Z for UTC, otherwise use offset with colon
+      if @time.offset == 0
+        @time.to_s("%Y-%m-%dT%H:%M:%SZ")
+      else
+        @time.to_s("%Y-%m-%dT%H:%M:%S%:z")
+      end
     end
 
     def to_unix : Int64
@@ -68,6 +87,7 @@ module Zone
     end
 
     def to_pretty(style : Int32 = 1) : String
+      # %Z gives timezone abbreviation (JST, EST, etc.), but fallback to name if not available
       case style
       when 1
         @time.to_s("%b %d, %Y - %l:%M %P %Z")

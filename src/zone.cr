@@ -89,5 +89,7 @@ module Zone
   end
 end
 
-# Main entry point
-Zone::CLI.run(ARGV)
+# Main entry point - only run if this file is being executed directly
+if PROGRAM_NAME.ends_with?("/zone") || PROGRAM_NAME.ends_with?("zone.cr")
+  Zone::CLI.run(ARGV)
+end
