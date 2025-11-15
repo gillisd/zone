@@ -40,6 +40,16 @@ class TestGitLogIntegration < Minitest::Test
     assert_match(/7:54 PM UTC/, output)  # -0500 + 5 hours = UTC
   end
 
+  def test_git_log_with_single_digit_day
+    input = "Date:   Wed Nov 5 11:24:19 2025 -0500"
+
+    output, status = run_zone_with_input(input, "--zone", "EST")
+
+    assert_equal 0, status
+    assert_match(/Nov 0?5, 2025/, output)  # May have leading zero
+    assert_match(/11:24 AM EST/, output)
+  end
+
   def test_git_log_fuller_format
     input = <<~GIT
       commit 054d8f9baa21268e2cec66e8e265580fc31f6b7e

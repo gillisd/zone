@@ -32,12 +32,11 @@ class TestZoneModule < Minitest::Test
   end
 
   def test_find_us_timezone
-    skip "No 'eastern' timezone exists in TZInfo - US/ prefixes are deprecated"
+    skip "TZInfo data varies by environment - US/Eastern may not exist"
     tz = Zone.find("eastern")
 
     assert_kind_of TZInfo::Timezone, tz
-    # Modern TZInfo uses America/ instead of US/
-    assert_match(/Eastern|New_York/, tz.identifier)
+    assert_match(/^US\//, tz.identifier)
   end
 
   def test_find_returns_nil_for_invalid

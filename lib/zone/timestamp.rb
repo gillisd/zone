@@ -19,8 +19,8 @@ module Zone
         parse_unix(input)
       in /^(?<amount>[0-9\.]+) (?<unit>second|minute|hour|day|week|month|year|decade)s? (?<direction>ago|from now)$/
         parse_relative($~)
-      in /^(?<dow>[A-Z][a-z]{2}) (?<mon>[A-Z][a-z]{2}) (?<day>\d{2}) (?<time>\d{2}:\d{2}:\d{2}) (?<year>\d{4}) (?<offset>[+-]\d{4})$/
-        # Git log format: "Fri Nov 14 14:54:35 2025 -0500"
+      in /^(?<dow>[A-Z][a-z]{2}) (?<mon>[A-Z][a-z]{2}) (?<day>\d{1,2}) (?<time>\d{2}:\d{2}:\d{2}) (?<year>\d{4}) (?<offset>[+-]\d{4})$/
+        # Git log format: "Fri Nov 14 14:54:35 2025 -0500" or "Wed Nov 5 11:24:19 2025 -0500"
         # Reorder to: "Fri Nov 14 14:54:35 -0500 2025" for DateTime.parse
         parse_git_log($~)
       else
