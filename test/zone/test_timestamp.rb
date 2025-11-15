@@ -3,6 +3,8 @@
 require "test_helper"
 
 class TestTimestamp < Minitest::Test
+  parallelize_me!
+
   def test_parse_time_object
     time = Time.now
     timestamp = Zone::Timestamp.parse(time)

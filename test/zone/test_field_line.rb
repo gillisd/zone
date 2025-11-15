@@ -3,6 +3,8 @@
 require "test_helper"
 
 class TestFieldLine < Minitest::Test
+  parallelize_me!
+
   def test_parse_simple_comma_delimited
     line = Zone::FieldLine.parse("foo,bar,baz", delimiter: ",")
 

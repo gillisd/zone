@@ -6,6 +6,8 @@ require "test_helper"
 # Integration tests defining 10/10 expected behavior for zone CLI
 # These tests capture the correct behavior from the original implementation
 class Test1010Behavior < Minitest::Test
+  parallelize_me!
+
   def setup
     @zone_bin = File.expand_path("../../exe/zone", __dir__)
   end

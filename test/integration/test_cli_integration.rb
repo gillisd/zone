@@ -3,6 +3,8 @@
 require "test_helper"
 
 class TestCliIntegration < Minitest::Test
+  parallelize_me!
+
   def setup
     @zone_bin = File.expand_path("../../exe/zone", __dir__)
   end

@@ -3,6 +3,8 @@
 require "test_helper"
 
 class TestFieldMapping < Minitest::Test
+  parallelize_me!
+
   def test_from_fields_creates_mapping
     fields = ["name", "age", "city"]
     mapping = Zone::FieldMapping.from_fields(fields)

@@ -3,6 +3,8 @@
 require "test_helper"
 
 class TestZoneModule < Minitest::Test
+  parallelize_me!
+
   def test_find_exact_timezone_name
     tz = Zone.find("America/New_York")
 
