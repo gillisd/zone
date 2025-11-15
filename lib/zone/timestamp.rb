@@ -19,6 +19,10 @@ module Zone
         parse_unix(input)
       in /^(?<amount>[0-9\.]+) (?<unit>second|minute|hour|day|week|month|year|decade)s? (?<direction>ago|from now)$/
         parse_relative($~)
+      in /^(?<dow>[A-Z][a-z]{2}) (?<mon>[A-Z][a-z]{2}) (?<day>\d{2}) (?<time>\d{2}:\d{2}:\d{2}) (?<year>\d{4}) (?<offset>[+-]\d{4})$/
+        # Git log format: "Fri Nov 14 14:54:35 2025 -0500"
+        # Reorder to: "Fri Nov 14 14:54:35 -0500 2025" for DateTime.parse
+        parse_git_log($~)
       else
         DateTime.parse(input).to_time
       end
@@ -121,6 +125,14 @@ module Zone
       in 'from now'
         Time.now + seconds
       end
+    end
+
+    def self.parse_git_log(match_data)
+      # Git log format: "Fri Nov 14 14:54:35 2025 -0500"
+      # Reorder to parseable format: "Fri Nov 14 14:54:35 -0500 2025"
+      match_data => { dow:, mon:, day:, time:, year:, offset: }
+      reordered = "#{dow} #{mon} #{day} #{time} #{offset} #{year}"
+      DateTime.parse(reordered).to_time
     end
   end
 end
