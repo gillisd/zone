@@ -138,7 +138,7 @@ class Test1010Behavior < Minitest::Test
 
     assert_equal 0, status
     # Spaces should be preserved (or become tabs)
-    assert_match(/^a[\s\t]+1736937000[\s\t]+c$/, output.strip)
+    assert_match(/^a[\s]+1736937000[\s]+c$/, output.strip)
   end
 
   def test_comma_delimiter_becomes_tab_in_output
@@ -263,7 +263,7 @@ class Test1010Behavior < Minitest::Test
   end
 
   def test_out_of_bounds_field_handles_gracefully
-    output, status = run_zone_with_input(
+    _output, status = run_zone_with_input(
       "a b c",
       "--field", "10", "--delimiter", "/\\s+/", "--unix"
     )
