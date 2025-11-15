@@ -15,6 +15,9 @@ module Zone
         elsif match = input.match(/^(?<dow>[A-Z][a-z]{2}) (?<mon>[A-Z][a-z]{2}) (?<day>\d{1,2}) (?<time>\d{2}:\d{2}:\d{2}) (?<year>\d{4}) (?<offset>[+-]\d{4})$/)
           # Git log format: "Fri Nov 14 14:54:35 2025 -0500"
           parse_git_log(match)
+        elsif match = input.match(/^(?<dow>[A-Z][a-z]{2}) (?<mon>[A-Z][a-z]{2}) (?<day>\d{1,2}) (?<time>\d{2}:\d{2}:\d{2}) (?<tz>[A-Z]{3,4}) (?<year>\d{4})$/)
+          # Date command format: "Wed Nov 12 19:13:17 UTC 2025"
+          parse_date_command(match)
         else
           begin
             Time.parse_rfc3339(input)
@@ -87,14 +90,16 @@ module Zone
     end
 
     def to_pretty(style : Int32 = 1) : String
-      # %Z gives timezone abbreviation (JST, EST, etc.), but fallback to name if not available
+      # Get timezone abbreviation instead of full name
+      tz_abbr = TimezoneAbbreviations.get_for_time(@time)
+
       case style
       when 1
-        @time.to_s("%b %d, %Y - %l:%M %P %Z")
+        @time.to_s("%b %d, %Y - %l:%M %P ") + tz_abbr
       when 2
-        @time.to_s("%b %d, %Y - %H:%M %Z")
+        @time.to_s("%b %d, %Y - %H:%M ") + tz_abbr
       when 3
-        @time.to_s("%Y-%m-%d %H:%M %Z")
+        @time.to_s("%Y-%m-%d %H:%M ") + tz_abbr
       else
         raise ArgumentError.new("Invalid pretty style '#{style}' (must be 1, 2, or 3)")
       end
@@ -158,6 +163,32 @@ module Zone
 
       reordered = "#{dow} #{mon} #{day} #{time} #{offset} #{year}"
       Time.parse(reordered, "%a %b %d %H:%M:%S %z %Y", Time::Location::UTC)
+    end
+
+    private def self.parse_date_command(match_data : Regex::MatchData) : Time
+      # Date command format: "Wed Nov 12 19:13:17 UTC 2025"
+      dow = match_data["dow"]
+      mon = match_data["mon"]
+      day = match_data["day"]
+      time = match_data["time"]
+      tz = match_data["tz"]
+      year = match_data["year"]
+
+      # Parse without timezone first
+      base_str = "#{dow} #{mon} #{day} #{time} #{year}"
+      parsed = Time.parse(base_str, "%a %b %d %H:%M:%S %Y", Time::Location::UTC)
+
+      # If timezone is not UTC, try to find and apply it
+      if tz != "UTC"
+        if location = Zone.find(tz)
+          # The time is in the specified timezone, convert to that location
+          parsed.in(location)
+        else
+          parsed
+        end
+      else
+        parsed
+      end
     end
   end
 end

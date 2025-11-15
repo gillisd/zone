@@ -1,6 +1,7 @@
 require "./zone/version"
 require "./zone/field_mapping"
 require "./zone/field_line"
+require "./zone/timezone_abbreviations"
 require "./zone/timestamp"
 require "./zone/cli"
 

@@ -11,17 +11,20 @@ module Zone
     end
 
     private def process_line(line : String, from_arguments : Bool, output : Output, transformation : Proc(String, String?), logger)
+      logger.debug { "Processing line: #{line.inspect}" } if logger
+
       if line.empty?
-        # logger.warn("Could not parse time from empty line") if from_arguments
         output.puts(line) unless from_arguments
       else
         result = replace_timestamps(line, output, transformation, logger)
 
         if result == line && from_arguments
+          logger.debug { "No pattern match, parsing as direct argument" } if logger
           parse_as_argument(line, output, transformation)
         elsif result == line
           output.puts(line)
         else
+          logger.debug { "Replaced timestamps in line" } if logger
           output.puts(result)
         end
       end
@@ -34,10 +37,16 @@ module Zone
     end
 
     private def transform_timestamp(match : String, output : Output, transformation : Proc(String, String?), logger) : String
+      logger.debug { "Transforming timestamp: #{match}" } if logger
       formatted = transformation.call(match)
-      formatted ? output.colorize_timestamp(formatted) : match
+      if formatted
+        logger.debug { "Transformed to: #{formatted}" } if logger
+        output.colorize_timestamp(formatted)
+      else
+        match
+      end
     rescue ex : Exception
-      # logger.warn("Could not parse time: #{ex.message}")
+      logger.warn { "Could not parse time: #{ex.message}" } if logger
       match
     end
 

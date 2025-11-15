@@ -6,30 +6,40 @@ module Zone
     extend self
 
     def build(verbose : Bool) : Log
+      # Configure log backend to stderr
+      backend = Log::IOBackend.new(STDERR)
+      backend.formatter = Log::Formatter.new do |entry, io|
+        prefix, color = log_style(entry.severity)
+        formatted = "#{prefix} #{entry.message}"
+        colored = case color
+        when :cyan
+          Colors.colors(STDERR).cyan(formatted)
+        when :yellow
+          Colors.colors(STDERR).yellow(formatted)
+        when :red
+          Colors.colors(STDERR).red(formatted)
+        else
+          formatted
+        end
+        io << colored
+      end
+
       logger = Log.for("zone")
+      logger.backend = backend
       logger.level = verbose ? Log::Severity::Debug : Log::Severity::Warn
       logger
     end
 
-    private def formatter
-      ->(severity : String, _datetime : Time, _progname : String, message : String) {
-        prefix, color = log_style(severity)
-        formatted = "#{prefix} #{message}"
-        colored = color ? Colors.colors(STDERR).send(color, formatted) : formatted
-        "#{colored}\n"
-      }
-    end
-
-    private def log_style(severity : String)
+    private def log_style(severity : Log::Severity)
       case severity
-      when "INFO"
+      when Log::Severity::Info
         {"→", :cyan}
-      when "WARN"
+      when Log::Severity::Warn
         {"⚠", :yellow}
-      when "ERROR"
+      when Log::Severity::Error
         {"✗", :red}
-      when "DEBUG"
-        {"DEBUG:", nil}
+      when Log::Severity::Debug
+        {"DEBUG", nil}
       else
         {"?", nil}
       end

@@ -35,16 +35,17 @@ module Zone
       end
 
       # Transform the field
-      field_line.transform(field_key, &transformation)
-
-      # Get transformed value
-      transformed_value = field_line[field_key]
-      if transformed_value.nil?
-        logger.warn { "Could not parse timestamp in field '#{field_key}': #{original_value.inspect}" }
-        return
+      field_line.transform(field_key) do |value|
+        result = transformation.call(value)
+        if result.nil?
+          logger.warn { "Could not parse time '#{value}'" }
+        end
+        result
       end
 
-      output.puts_highlighted(field_line.to_s, highlight: transformed_value)
+      # Output the line with the field (transformed or original)
+      transformed = field_line[field_key]
+      output.puts_highlighted(field_line.to_s, highlight: transformed || original_value)
     end
 
     def build_mapping(input, options) : Tuple(FieldMapping, String?)
