@@ -1,57 +1,51 @@
-require 'timestamp_patterns'
+require "./timestamp_patterns"
 
 module Zone
   module Pattern
-    module_function
+    extend self
 
-    def process(input, output, transformation, logger)
+    def process(input : Input, output : Output, transformation : Proc(String, String?), logger)
       input.each_line do |line|
         process_line(line, input.from_arguments?, output, transformation, logger)
       end
     end
 
-    def process_line(line, from_arguments, output, transformation, logger)
-      case line
-      in ""
-        logger.warn("Could not parse time from empty line") if from_arguments
+    private def process_line(line : String, from_arguments : Bool, output : Output, transformation : Proc(String, String?), logger)
+      if line.empty?
+        # logger.warn("Could not parse time from empty line") if from_arguments
         output.puts(line) unless from_arguments
       else
         result = replace_timestamps(line, output, transformation, logger)
 
-        case [result == line, from_arguments]
-        in [true, true]
+        if result == line && from_arguments
           parse_as_argument(line, output, transformation)
-        in [true, false]
+        elsif result == line
           output.puts(line)
-        in [false, _]
+        else
           output.puts(result)
         end
       end
     end
-    private_class_method :process_line
 
-    def replace_timestamps(line, output, transformation, logger)
+    private def replace_timestamps(line : String, output : Output, transformation : Proc(String, String?), logger) : String
       TimestampPatterns.replace_all(line, logger: logger) do |match, _pattern|
         transform_timestamp(match, output, transformation, logger)
       end
     end
-    private_class_method :replace_timestamps
 
-    def transform_timestamp(match, output, transformation, logger)
+    private def transform_timestamp(match : String, output : Output, transformation : Proc(String, String?), logger) : String
       formatted = transformation.call(match)
-      output.colorize_timestamp(formatted)
-    rescue Exception => e
-      logger.warn("Could not parse time: #{e.message}")
+      formatted ? output.colorize_timestamp(formatted) : match
+    rescue ex : Exception
+      # logger.warn("Could not parse time: #{ex.message}")
       match
     end
-    private_class_method :transform_timestamp
 
-    def parse_as_argument(text, output, transformation)
+    private def parse_as_argument(text : String, output : Output, transformation : Proc(String, String?))
       formatted = transformation.call(text)
-      raise ArgumentError, "Could not parse time '#{text}'" if formatted.nil?
+      raise ArgumentError.new("Could not parse time '#{text}'") if formatted.nil?
 
       output.puts(output.colorize_timestamp(formatted))
     end
-    private_class_method :parse_as_argument
   end
 end

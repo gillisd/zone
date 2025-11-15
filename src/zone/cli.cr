@@ -14,9 +14,10 @@ module Zone
     end
 
     @argv : Array(String)
-    @logger : Logger | Nil
+    @logger : Log?
 
     def initialize(@argv : Array(String))
+      @logger = nil
     end
 
     def run

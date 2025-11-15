@@ -2,7 +2,7 @@ require "./timestamp"
 
 module Zone
   module Transform
-    module_function
+    extend self
 
     # Build a transformation lambda.
     #

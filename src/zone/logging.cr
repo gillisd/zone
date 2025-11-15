@@ -3,7 +3,7 @@ require "./colors"
 
 module Zone
   module Logging
-    module_function
+    extend self
 
     def build(verbose : Bool) : Log
       logger = Log.for("zone")

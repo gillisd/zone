@@ -92,9 +92,7 @@ module Zone
 
       separator ""
       separator "Timezones:"
-      on("--require STRING", "Require external library like \"active_support\" for more powerful parsing") do |requirement|
-        require requirement
-      end
+      # Note: --require is not supported in Crystal (compile-time requires only)
 
       on("--zone TZ", "-z", "Convert to time zone (default: local)") do |tz|
         @zone = tz

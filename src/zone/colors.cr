@@ -40,7 +40,7 @@ module Zone
       # ANSI color for the default foreground color
       RESET_FG = "\e[39m"
 
-      module_function
+      extend self
 
       #
       # Bolds the text.
@@ -142,7 +142,7 @@ module Zone
       CYAN = ""
       RESET_FG = ""
 
-      module_function
+      extend self
 
       def bold(string : String? = nil)
         string || ""
@@ -165,7 +165,7 @@ module Zone
       end
     end
 
-    module_function
+    extend self
 
     #
     # Checks if the stream supports ANSI output.

@@ -1,46 +1,41 @@
-require 'time'
-require 'date'
-
 module Zone
   class Timestamp
-    attr_reader :time, :zone
+    getter time : Time
+    getter zone : String?
 
-    def self.parse(input)
+    def self.parse(input : Time | String) : Timestamp
       time = case input
-      in Time
+      when Time
         input
-      in DateTime
-        input.to_time
-      in Date
-        input.to_time
-      in /^[0-9\.]+$/
-        parse_unix(input)
-      in /^(?<amount>[0-9\.]+) (?<unit>second|minute|hour|day|week|month|year|decade)s? (?<direction>ago|from now)$/
-        parse_relative($~)
-      in /^(?<dow>[A-Z][a-z]{2}) (?<mon>[A-Z][a-z]{2}) (?<day>\d{1,2}) (?<time>\d{2}:\d{2}:\d{2}) (?<year>\d{4}) (?<offset>[+-]\d{4})$/
-        # Git log format: "Fri Nov 14 14:54:35 2025 -0500" or "Wed Nov 5 11:24:19 2025 -0500"
-        # Reorder to: "Fri Nov 14 14:54:35 -0500 2025" for DateTime.parse
-        parse_git_log($~)
+      when String
+        if input.matches?(/^[0-9\.]+$/)
+          parse_unix(input)
+        elsif match = input.match(/^(?<amount>[0-9\.]+) (?<unit>second|minute|hour|day|week|month|year|decade)s? (?<direction>ago|from now)$/)
+          parse_relative(match)
+        elsif match = input.match(/^(?<dow>[A-Z][a-z]{2}) (?<mon>[A-Z][a-z]{2}) (?<day>\d{1,2}) (?<time>\d{2}:\d{2}:\d{2}) (?<year>\d{4}) (?<offset>[+-]\d{4})$/)
+          # Git log format: "Fri Nov 14 14:54:35 2025 -0500"
+          parse_git_log(match)
+        else
+          Time.parse_rfc3339(input) rescue Time.parse(input, "%Y-%m-%dT%H:%M:%S%z") rescue Time.parse(input, "%Y-%m-%d %H:%M:%S")
+        end
       else
-        DateTime.parse(input).to_time
+        raise ArgumentError.new("Unsupported input type")
       end
 
       new(time)
-    rescue Exception
-      raise ArgumentError, "Could not parse time '#{input}'"
+    rescue ex
+      raise ArgumentError.new("Could not parse time '#{input}': #{ex.message}")
     end
 
-    def initialize(time, zone: nil)
-      @time = time
-      @zone = zone
+    def initialize(@time : Time, @zone : String? = nil)
     end
 
-    def in_zone(zone_name)
-      tz = Zone.find(zone_name)
+    def in_zone(zone_name : String) : Timestamp
+      location = Zone.find(zone_name)
 
-      raise ArgumentError, "Could not find timezone '#{zone_name}'" if tz.nil?
+      raise ArgumentError.new("Could not find timezone '#{zone_name}'") if location.nil?
 
-      converted = tz.to_local(@time)
+      converted = @time.in(location)
 
       self.class.new(
         converted,
@@ -48,89 +43,99 @@ module Zone
       )
     end
 
-    def in_utc
+    def in_utc : Timestamp
       self.class.new(
-        @time.utc,
-        zone: 'UTC'
+        @time.to_utc,
+        zone: "UTC"
       )
     end
 
-    def in_local
+    def in_local : Timestamp
       self.class.new(
-        @time.localtime,
-        zone: 'local'
+        @time.to_local,
+        zone: "local"
       )
     end
 
-    def to_iso8601
-      @time.utc_offset.zero? ? @time.strftime('%Y-%m-%dT%H:%M:%SZ') : @time.iso8601
+    def to_iso8601 : String
+      @time.to_rfc3339
     end
 
-    def to_unix
-      @time.to_i
+    def to_unix : Int64
+      @time.to_unix
     end
 
-    def to_pretty(style = 1)
+    def to_pretty(style : Int32 = 1) : String
       case style
       when 1
-        @time.strftime('%b %d, %Y - %l:%M %p %Z')
+        @time.to_s("%b %d, %Y - %l:%M %p %Z")
       when 2
-        @time.strftime('%b %d, %Y - %H:%M %Z')
+        @time.to_s("%b %d, %Y - %H:%M %Z")
       when 3
-        @time.strftime('%Y-%m-%d %H:%M %Z')
+        @time.to_s("%Y-%m-%d %H:%M %Z")
       else
-        raise ArgumentError, "Invalid pretty style '#{style}' (must be 1, 2, or 3)"
+        raise ArgumentError.new("Invalid pretty style '#{style}' (must be 1, 2, or 3)")
       end
     end
 
-    def strftime(format)
-      @time.strftime(format)
+    def strftime(format : String) : String
+      @time.to_s(format)
     end
 
-    private
-
-    def self.parse_unix(str)
-      precision = str.length - 10
-      time_float = str.to_f / 10**precision
-      Time.at(time_float)
+    private def self.parse_unix(str : String) : Time
+      precision = str.size - 10
+      time_float = str.to_f / (10 ** precision)
+      Time.unix(time_float.to_i64)
     end
 
-    def self.parse_relative(match_data)
-      match_data => { amount:, unit:, direction: }
+    private def self.parse_relative(match_data : Regex::MatchData) : Time
+      amount = match_data["amount"].to_i
+      unit = match_data["unit"]
+      direction = match_data["direction"]
 
       seconds = case unit
-      in 'second'
-        amount.to_i
-      in 'minute'
-        amount.to_i * 60
-      in 'hour'
-        amount.to_i * 3600
-      in 'day'
-        amount.to_i * 86400
-      in 'week'
-        amount.to_i * 604800
-      in 'month'
-        amount.to_i * 2592000
-      in 'year'
-        amount.to_i * 31536000
-      in 'decade'
-        amount.to_i * 315360000
+      when "second"
+        amount
+      when "minute"
+        amount * 60
+      when "hour"
+        amount * 3600
+      when "day"
+        amount * 86400
+      when "week"
+        amount * 604800
+      when "month"
+        amount * 2592000
+      when "year"
+        amount * 31536000
+      when "decade"
+        amount * 315360000
+      else
+        0
       end
 
       case direction
-      in 'ago'
-        Time.now - seconds
-      in 'from now'
-        Time.now + seconds
+      when "ago"
+        Time.local - seconds.seconds
+      when "from now"
+        Time.local + seconds.seconds
+      else
+        Time.local
       end
     end
 
-    def self.parse_git_log(match_data)
+    private def self.parse_git_log(match_data : Regex::MatchData) : Time
       # Git log format: "Fri Nov 14 14:54:35 2025 -0500"
-      # Reorder to parseable format: "Fri Nov 14 14:54:35 -0500 2025"
-      match_data => { dow:, mon:, day:, time:, year:, offset: }
+      # Reorder to parseable format
+      dow = match_data["dow"]
+      mon = match_data["mon"]
+      day = match_data["day"]
+      time = match_data["time"]
+      year = match_data["year"]
+      offset = match_data["offset"]
+
       reordered = "#{dow} #{mon} #{day} #{time} #{offset} #{year}"
-      DateTime.parse(reordered).to_time
+      Time.parse(reordered, "%a %b %d %H:%M:%S %z %Y")
     end
   end
 end

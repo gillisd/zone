@@ -47,7 +47,7 @@ module Zone
     # Date command output format (e.g., "Wed Nov 12 19:13:17 UTC 2025")
     P11_DATE_COMMAND = /\b[A-Z][a-z]{2} [A-Z][a-z]{2} \d{1,2} \d{2}:\d{2}:\d{2} [A-Z]{3,4} \d{4}\b/
 
-    module_function
+    extend self
 
     #
     # Returns all timestamp patterns in priority order.
@@ -107,26 +107,26 @@ module Zone
     #   end
     #   # => "Logged in at Jan 15, 2025 - 10:30 AM UTC"
     #
-    def replace_all(text, logger: nil)
+    def replace_all(text : String, logger = nil, &block : String, Regex -> String) : String
       result = text.dup
       matches = 0
 
       patterns.each do |pattern|
-        result.gsub!(pattern) do |match|
-          next match unless valid_timestamp?(match, pattern)
+        result = result.gsub(pattern) do |match|
+          next match.to_s unless valid_timestamp?(match.to_s, pattern)
 
           matches += 1
 
           begin
-            yield(match, pattern)
-          rescue Exception => e
-            logger&.debug("Failed to transform '#{match}': #{e.message}")
-            match # Keep original if transformation fails
+            yield(match.to_s, pattern)
+          rescue ex : Exception
+            # logger&.debug("Failed to transform '#{match}': #{ex.message}")
+            match.to_s # Keep original if transformation fails
           end
         end
       end
 
-      logger&.debug("Matched #{matches} timestamp(s)") if logger && matches > 0
+      # logger&.debug("Matched #{matches} timestamp(s)") if logger && matches > 0
 
       result
     end

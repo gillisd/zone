@@ -1,4 +1,5 @@
 require "./test_helper"
+require "spec"
 
 describe Zone do
   it "has a version number" do

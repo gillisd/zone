@@ -1,9 +1,9 @@
-require 'field_line'
-require 'field_mapping'
+require "./field_line"
+require "./field_mapping"
 
 module Zone
   module Field
-    module_function
+    extend self
 
     def process(input, output, transformation, options, logger)
       mapping, header_line = build_mapping(input, options)
@@ -40,7 +40,6 @@ module Zone
 
       output.puts_highlighted(field_line.to_s, highlight: transformed_value)
     end
-    private_class_method :process_line
 
     def build_mapping(input, options)
       return [FieldMapping.numeric, nil] unless options.headers
@@ -60,6 +59,5 @@ module Zone
 
       [FieldMapping.from_fields(fields.map(&:strip)), formatted_header]
     end
-    private_class_method :build_mapping
   end
 end

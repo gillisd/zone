@@ -3,11 +3,11 @@ require "./colors"
 module Zone
   class Output
     @stream : IO
-    @colors : (typeof(Colors::ANSI) | typeof(Colors::PlainText))
+    @use_colors : Bool
 
     def initialize(color_mode : String = "auto", stream : IO = STDOUT)
       @stream = stream
-      @colors = colorize(color_mode)
+      @use_colors = should_colorize(color_mode, stream)
     end
 
     def puts(text : String)
@@ -16,24 +16,28 @@ module Zone
 
     def puts_highlighted(text : String, highlight : String | Int32)
       highlight_str = highlight.to_s
-      output = text.sub(highlight_str, @colors.cyan(highlight_str))
+      output = if @use_colors
+        text.sub(highlight_str, Colors::ANSI.cyan(highlight_str))
+      else
+        text
+      end
       @stream.puts(output)
     end
 
-    def colorize_timestamp(timestamp : String)
-      @colors.cyan(timestamp)
+    def colorize_timestamp(timestamp : String) : String
+      @use_colors ? Colors::ANSI.cyan(timestamp) : timestamp
     end
 
-    private def colorize(mode : String)
+    private def should_colorize(mode : String, stream : IO) : Bool
       case mode
       when "always"
-        Colors::ANSI
+        true
       when "never"
-        Colors::PlainText
+        false
       when "auto"
-        Colors.colors(@stream)
+        Colors.ansi?(stream)
       else
-        Colors::PlainText
+        false
       end
     end
   end
