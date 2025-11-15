@@ -49,23 +49,23 @@ module Zone
     # @param [Symbol, Hash] format_spec
     #
     # @return [String, Integer]
-    def format_timestamp(timestamp : Timestamp, format_spec : FormatType)
+    def format_timestamp(timestamp : Timestamp, format_spec : FormatType) : String
       case format_spec
       when Symbol
         case format_spec
         when :to_iso8601
           timestamp.to_iso8601
         when :to_unix
-          timestamp.to_unix
+          timestamp.to_unix.to_s
         else
-          timestamp.to_s
+          timestamp.time.to_s
         end
       when NamedTuple(pretty: Int32)
         timestamp.to_pretty(format_spec[:pretty])
       when NamedTuple(strftime: String)
         timestamp.strftime(format_spec[:strftime])
       else
-        timestamp.to_s
+        timestamp.time.to_s
       end
     end
   end

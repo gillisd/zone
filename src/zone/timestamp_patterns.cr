@@ -55,11 +55,20 @@ module Zone
     # @return [Array<Regex>]
     #   All Regex constants defined in this module, sorted by P## prefix
     #
-    def patterns
-      constants
-        .select { |c| c.to_s.match?(/^P\d+_/) }
-        .sort_by { |c| c.to_s[/^P(\d+)_/, 1].to_i }
-        .map { |c| const_get(c) }
+    def patterns : Array(Regex)
+      [
+        P01_ISO8601_WITH_TZ,
+        P02_ISO8601_ZULU,
+        P03_ISO8601_SPACE_WITH_OFFSET,
+        P04_ISO8601_SPACE,
+        P05_PRETTY1_12HR,
+        P06_PRETTY2_24HR,
+        P07_PRETTY3_ISO,
+        P08_UNIX_TIMESTAMP,
+        P09_RELATIVE_TIME,
+        P10_GIT_LOG,
+        P11_DATE_COMMAND
+      ]
     end
 
     #

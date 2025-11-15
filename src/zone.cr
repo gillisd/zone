@@ -76,3 +76,6 @@ module Zone
     nil
   end
 end
+
+# Main entry point
+Zone::CLI.run(ARGV)

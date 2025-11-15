@@ -9,7 +9,7 @@ module Zone
       mapping, header_line = build_mapping(input, options)
 
       # Output header line if present
-      output.puts(header_line) if header_line
+      output.puts(header_line) if header_line.is_a?(String)
 
       input.each_line do |line|
         process_line(line, input.skip_headers?, output, transformation, options, mapping, logger)
@@ -19,35 +19,51 @@ module Zone
     def process_line(line, skip, output, transformation, options, mapping, logger)
       return if skip
 
-      field_line = FieldLine.parse(line, delimiter: options.delimiter, mapping: mapping, logger: logger)
+      delimiter_str = options.delimiter
+      return unless delimiter_str
+
+      field_key = options.field
+      return unless field_key
+
+      field_line = FieldLine.parse(line, delimiter: delimiter_str, mapping: mapping, logger: logger)
 
       # Check if field exists before transforming
-      original_value = field_line[options.field]
+      original_value = field_line[field_key]
       if original_value.nil?
-        logger.warn("Field '#{options.field}' not found or out of bounds in line: #{line}")
+        logger.warn { "Field '#{field_key}' not found or out of bounds in line: #{line}" }
         return
       end
 
       # Transform the field
-      field_line.transform(options.field, &transformation)
+      field_line.transform(field_key, &transformation)
 
       # Get transformed value
-      transformed_value = field_line[options.field]
+      transformed_value = field_line[field_key]
       if transformed_value.nil?
-        logger.warn("Could not parse timestamp in field '#{options.field}': #{original_value.inspect}")
+        logger.warn { "Could not parse timestamp in field '#{field_key}': #{original_value.inspect}" }
         return
       end
 
       output.puts_highlighted(field_line.to_s, highlight: transformed_value)
     end
 
-    def build_mapping(input, options)
-      return [FieldMapping.numeric, nil] unless options.headers
+    def build_mapping(input, options) : Tuple(FieldMapping, String?)
+      return {FieldMapping.numeric, nil} unless options.headers
 
       input.mark_skip_headers!
-      header_line = input.each_line.first
+      header_line = ""
+      found = false
+      input.each_line do |line|
+        unless found
+          header_line = line
+          found = true
+        end
+      end
 
-      parsed = FieldLine.parse_delimiter(options.delimiter)
+      delimiter_str = options.delimiter
+      return {FieldMapping.numeric, nil} if delimiter_str.nil?
+
+      parsed = FieldLine.parse_delimiter(delimiter_str)
       fields = FieldLine.split_line(header_line, parsed)
 
       # Format header line the same way as data lines
@@ -57,7 +73,7 @@ module Zone
         mapping: FieldMapping.numeric
       ).to_s
 
-      [FieldMapping.from_fields(fields.map(&:strip)), formatted_header]
+      {FieldMapping.from_fields(fields.map { |f| f.strip }), formatted_header}
     end
   end
 end

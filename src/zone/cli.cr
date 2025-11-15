@@ -22,7 +22,7 @@ module Zone
 
     def run
       options = Options.new
-      options.parse!(@argv)
+      options.parse(@argv)
       options.validate!
 
       setup_logger!(options.verbose)
@@ -36,11 +36,11 @@ module Zone
       else
         Pattern.process(input, output, transformation, @logger.not_nil!)
       end
-    rescue e : OptionParser::MissingArgument | OptionParser::InvalidOption | OptionParser::InvalidArgument
+    rescue e : OptionParser::Exception
       STDERR.puts Colors.colors(STDERR).red("Error:") + " #{e.message}"
       STDERR.puts "Run 'zone --help' for usage information."
       exit 1
-    rescue e : ArgumentError | Exception
+    rescue e : ArgumentError
       message = e.message.try &.gsub(/'([^']+)'/) do |match|
         "'#{Colors.colors(STDERR).bold($1)}'"
       end || ""

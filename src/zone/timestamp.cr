@@ -16,7 +16,7 @@ module Zone
           # Git log format: "Fri Nov 14 14:54:35 2025 -0500"
           parse_git_log(match)
         else
-          Time.parse_rfc3339(input) rescue Time.parse(input, "%Y-%m-%dT%H:%M:%S%z") rescue Time.parse(input, "%Y-%m-%d %H:%M:%S")
+          Time.parse_rfc3339(input) rescue Time.parse(input, "%Y-%m-%dT%H:%M:%S%z", Time::Location::UTC) rescue Time.parse(input, "%Y-%m-%d %H:%M:%S", Time::Location.local)
         end
       else
         raise ArgumentError.new("Unsupported input type")
@@ -135,7 +135,7 @@ module Zone
       offset = match_data["offset"]
 
       reordered = "#{dow} #{mon} #{day} #{time} #{offset} #{year}"
-      Time.parse(reordered, "%a %b %d %H:%M:%S %z %Y")
+      Time.parse(reordered, "%a %b %d %H:%M:%S %z %Y", Time::Location::UTC)
     end
   end
 end
