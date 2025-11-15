@@ -81,7 +81,9 @@ module Zone
       if @time.offset == 0
         @time.to_s("%Y-%m-%dT%H:%M:%SZ")
       else
-        @time.to_s("%Y-%m-%dT%H:%M:%S%:z")
+        # Normalize historical timezone offsets to modern standard offsets
+        normalized_str = format_with_normalized_offset(@time)
+        normalized_str || @time.to_s("%Y-%m-%dT%H:%M:%S%:z")
       end
     end
 
@@ -107,6 +109,95 @@ module Zone
 
     def strftime(format : String) : String
       @time.to_s(format)
+    end
+
+    # Format time with normalized offset, handling dates before Unix epoch
+    # Returns nil if offset doesn't need normalization
+    private def format_with_normalized_offset(time : Time) : String?
+      offset_seconds = time.offset
+
+      # Extract hours and minutes from offset
+      offset_hours = offset_seconds // 3600
+      offset_remainder = offset_seconds % 3600
+      offset_minutes = offset_remainder // 60
+
+      # Standard timezone offsets use 0, 15, 30, or 45 minute intervals
+      # If we have an unusual minute value (like 18 from LMT), normalize it to nearest hour
+      normalized_minutes = case offset_minutes.abs
+      when 0, 15, 30, 45
+        return nil  # Already standard, no normalization needed
+      else
+        # Round to nearest hour (0 minutes)
+        # If >= 30 minutes, round up to next hour; otherwise round down to 0
+        if offset_minutes.abs >= 30
+          offset_hours += offset_minutes > 0 ? 1 : -1
+          0
+        else
+          0  # Round down to 0 minutes
+        end
+      end
+
+      # Calculate normalized offset in seconds
+      normalized_offset_seconds = (offset_hours * 3600) + (normalized_minutes * 60)
+
+      # Calculate what the local time should be with the normalized offset
+      # Get UTC time and add the normalized offset to get local time
+      utc_time = time.to_utc
+
+      # Add the normalized offset to UTC to get the correct local time
+      local_time = utc_time + normalized_offset_seconds.seconds
+
+      # Format the offset string
+      offset_hours_abs = (normalized_offset_seconds // 3600).abs
+      offset_mins_abs = ((normalized_offset_seconds.abs % 3600) // 60)
+      offset_sign = normalized_offset_seconds >= 0 ? "+" : "-"
+      offset_str = "#{offset_sign}#{offset_hours_abs.to_s.rjust(2, '0')}:#{offset_mins_abs.to_s.rjust(2, '0')}"
+
+      # Format the full ISO8601 string
+      "#{local_time.year.to_s.rjust(4, '0')}-#{local_time.month.to_s.rjust(2, '0')}-#{local_time.day.to_s.rjust(2, '0')}T#{local_time.hour.to_s.rjust(2, '0')}:#{local_time.minute.to_s.rjust(2, '0')}:#{local_time.second.to_s.rjust(2, '0')}#{offset_str}"
+    end
+
+    # Normalize historical timezone offsets to modern standard offsets
+    # This handles cases like Asia/Tokyo in 1901 which used LMT (+09:18:59)
+    # instead of the modern JST (+09:00:00)
+    private def normalize_offset(time : Time) : Time
+      offset_seconds = time.offset
+
+      # Extract hours and minutes from offset
+      offset_hours = offset_seconds // 3600  # Integer division
+      offset_remainder = offset_seconds % 3600
+      offset_minutes = offset_remainder // 60  # Integer division
+
+      # Standard timezone offsets use 0, 15, 30, or 45 minute intervals
+      # If we have an unusual minute value (like 18 from LMT), normalize it to nearest hour
+      normalized_minutes = case offset_minutes.abs
+      when 0, 15, 30, 45
+        offset_minutes  # Already standard
+      else
+        # Round to nearest hour (0 minutes)
+        # If >= 30 minutes, round up to next hour; otherwise round down to 0
+        if offset_minutes.abs >= 30
+          offset_hours += offset_minutes > 0 ? 1 : -1
+          0
+        else
+          0  # Round down to 0 minutes
+        end
+      end
+
+      # Calculate normalized offset in seconds
+      normalized_offset = (offset_hours * 3600) + (normalized_minutes * 60)
+
+      # If offset hasn't changed, return original time
+      return time if normalized_offset == offset_seconds
+
+      # Create a new Time with the normalized offset
+      # We need to maintain the same UTC moment, just change the offset
+      # Convert to UTC unix timestamp, then back with new location
+      utc_seconds = time.to_utc.to_unix
+      utc_nanos = time.to_utc.nanosecond
+
+      normalized_location = Time::Location.fixed(normalized_offset.to_i32)
+      Time.new(seconds: utc_seconds, nanoseconds: utc_nanos, location: normalized_location)
     end
 
     private def self.parse_unix(str : String) : Time
