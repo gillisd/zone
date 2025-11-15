@@ -58,7 +58,9 @@ module Zone
     end
 
     def to_iso8601 : String
-      @time.to_rfc3339
+      # Use custom format to preserve timezone offset
+      # %:z includes the colon in the offset (e.g., +09:00 instead of +0900)
+      @time.to_s("%Y-%m-%dT%H:%M:%S%:z")
     end
 
     def to_unix : Int64
@@ -68,7 +70,7 @@ module Zone
     def to_pretty(style : Int32 = 1) : String
       case style
       when 1
-        @time.to_s("%b %d, %Y - %l:%M %p %Z")
+        @time.to_s("%b %d, %Y - %l:%M %P %Z")
       when 2
         @time.to_s("%b %d, %Y - %H:%M %Z")
       when 3
