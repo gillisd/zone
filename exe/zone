@@ -1,7 +1,5 @@
-#!/usr/bin/env ruby
+#!/usr/bin/env crystal run
 
-# frozen_string_literal: true
-
-require_relative '../lib/zone'
+require "../src/zone"
 
 Zone::CLI.run(ARGV)

@@ -1,6 +1,4 @@
-# frozen_string_literal: true
-
-require_relative 'field_mapping'
+require 'field_mapping'
 
 module Zone
   class FieldLine
@@ -20,7 +18,7 @@ module Zone
       case delimiter_string
       in /^\/(.*)\/$/
         # Regex delimiter wrapped in slashes: "/\s+/" -> /\s+/
-        Regexp.new($1)
+        Regex.new($1)
       in String => d
         # String delimiter: "," -> ","
         d
@@ -33,7 +31,7 @@ module Zone
       case [line, delimiter]
       in [String, ""]
         [line]
-      in [String, String | Regexp]
+      in [String, String | Regex]
         line.split(delimiter)
       else
         raise ArgumentError, "Invalid delimiter type: #{delimiter.class}"
@@ -64,7 +62,7 @@ module Zone
 
     def to_s
       output_delim = case @delimiter
-      when Regexp
+      when Regex
         "\t"
       when ","
         "\t"

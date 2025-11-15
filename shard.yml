@@ -1,0 +1,26 @@
+name: zone
+version: 0.1.1
+
+authors:
+  - David Gillis <david@flipmine.com>
+
+description: |
+  An ergonomic CLI for quick time-zone conversion
+
+license: MIT
+
+crystal: ">= 1.0.0"
+
+targets:
+  zone:
+    main: src/zone.cr
+
+dependencies:
+  tzinfo:
+    github: panthomakos/tzinfo.cr
+    version: ~> 0.1.0
+
+development_dependencies:
+  spec2:
+    github: waterlink/spec2.cr
+    version: ~> 0.10.0

@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 module Zone
   #
   # Pattern matching for timestamps in arbitrary text.
@@ -9,7 +7,7 @@ module Zone
   #
   module TimestampPatterns
     # Patterns are prefixed with P## to define priority order (most specific first).
-    # To add a new pattern, simply define a new Regexp constant with appropriate priority number.
+    # To add a new pattern, simply define a new Regex constant with appropriate priority number.
     # It will be automatically included in pattern matching.
 
     # ISO 8601 with timezone offset (e.g., 2025-01-15T10:30:00+09:00)
@@ -54,8 +52,8 @@ module Zone
     #
     # Returns all timestamp patterns in priority order.
     #
-    # @return [Array<Regexp>]
-    #   All Regexp constants defined in this module, sorted by P## prefix
+    # @return [Array<Regex>]
+    #   All Regex constants defined in this module, sorted by P## prefix
     #
     def patterns
       constants
@@ -92,7 +90,7 @@ module Zone
     # @yieldparam [String] match
     #   The matched timestamp string
     #
-    # @yieldparam [Regexp] pattern
+    # @yieldparam [Regex] pattern
     #   The pattern that matched
     #
     # @yieldreturn [String]
@@ -121,7 +119,7 @@ module Zone
 
           begin
             yield(match, pattern)
-          rescue StandardError => e
+          rescue Exception => e
             logger&.debug("Failed to transform '#{match}': #{e.message}")
             match # Keep original if transformation fails
           end
@@ -139,7 +137,7 @@ module Zone
     # @param [String] str
     #   The matched string
     #
-    # @param [Regexp] pattern
+    # @param [Regex] pattern
     #   The pattern that matched
     #
     # @return [Boolean]

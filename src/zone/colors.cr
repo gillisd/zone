@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 # Extracted from command_kit gem (https://github.com/postmodern/command_kit.rb)
 # Copyright (c) 2021-2024 Hal Brodigan
 # Licensed under the MIT License
@@ -53,9 +51,11 @@ module Zone
       # @return [String, BOLD]
       #   The bolded string or just {BOLD} if no arguments were given.
       #
-      def bold(string=nil)
-        if string then "#{BOLD}#{string}#{RESET_INTENSITY}"
-        else           BOLD
+      def bold(string : String? = nil)
+        if string
+          "#{BOLD}#{string}#{RESET_INTENSITY}"
+        else
+          BOLD
         end
       end
 
@@ -68,9 +68,11 @@ module Zone
       # @return [String, RED]
       #   The colorized string or just {RED} if no arguments were given.
       #
-      def red(string=nil)
-        if string then "#{RED}#{string}#{RESET_FG}"
-        else           RED
+      def red(string : String? = nil)
+        if string
+          "#{RED}#{string}#{RESET_FG}"
+        else
+          RED
         end
       end
 
@@ -83,9 +85,11 @@ module Zone
       # @return [String, YELLOW]
       #   The colorized string or just {YELLOW} if no arguments were given.
       #
-      def yellow(string=nil)
-        if string then "#{YELLOW}#{string}#{RESET_FG}"
-        else           YELLOW
+      def yellow(string : String? = nil)
+        if string
+          "#{YELLOW}#{string}#{RESET_FG}"
+        else
+          YELLOW
         end
       end
 
@@ -98,9 +102,11 @@ module Zone
       # @return [String, GREEN]
       #   The colorized string or just {GREEN} if no arguments were given.
       #
-      def green(string=nil)
-        if string then "#{GREEN}#{string}#{RESET_FG}"
-        else           GREEN
+      def green(string : String? = nil)
+        if string
+          "#{GREEN}#{string}#{RESET_FG}"
+        else
+          GREEN
         end
       end
 
@@ -113,9 +119,11 @@ module Zone
       # @return [String, CYAN]
       #   The colorized string or just {CYAN} if no arguments were given.
       #
-      def cyan(string=nil)
-        if string then "#{CYAN}#{string}#{RESET_FG}"
-        else           CYAN
+      def cyan(string : String? = nil)
+        if string
+          "#{CYAN}#{string}#{RESET_FG}"
+        else
+          CYAN
         end
       end
     end
@@ -125,16 +133,35 @@ module Zone
     # supported.
     #
     module PlainText
-      ANSI.constants(false).each do |name|
-        const_set(name,'')
-      end
+      RESET = ""
+      BOLD = ""
+      RESET_INTENSITY = ""
+      RED = ""
+      YELLOW = ""
+      GREEN = ""
+      CYAN = ""
+      RESET_FG = ""
 
       module_function
 
-      [:bold, :red, :yellow, :green, :cyan].each do |name|
-        define_method(name) do |string=nil|
-          string || ''
-        end
+      def bold(string : String? = nil)
+        string || ""
+      end
+
+      def red(string : String? = nil)
+        string || ""
+      end
+
+      def yellow(string : String? = nil)
+        string || ""
+      end
+
+      def green(string : String? = nil)
+        string || ""
+      end
+
+      def cyan(string : String? = nil)
+        string || ""
       end
     end
 
@@ -152,8 +179,8 @@ module Zone
     #   env variable is set, it will disable color output. Color output will
     #   also be disabled if the given stream is not a TTY.
     #
-    def ansi?(stream=$stdout)
-      ENV['TERM'] != 'dumb' && !ENV['NO_COLOR'] && stream.tty?
+    def ansi?(stream : IO = STDOUT)
+      ENV["TERM"]? != "dumb" && !ENV.has_key?("NO_COLOR") && stream.tty?
     end
 
     #
@@ -170,9 +197,11 @@ module Zone
     # @example Using colors with stderr output:
     #   stderr.puts colors(stderr).green("Hello world")
     #
-    def colors(stream=$stdout)
-      if ansi?(stream) then ANSI
-      else                  PlainText
+    def colors(stream : IO = STDOUT)
+      if ansi?(stream)
+        ANSI
+      else
+        PlainText
       end
     end
   end

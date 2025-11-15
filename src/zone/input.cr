@@ -1,20 +1,22 @@
-# frozen_string_literal: true
-
-require_relative 'timestamp_patterns'
+require "./timestamp_patterns"
 
 module Zone
   class Input
-    def initialize(argv, stdin: $stdin)
-      @argv = argv
+    @argv : Array(String)
+    @stdin : IO
+    @skip_first : Bool
+    @source : Array(String)?
+
+    def initialize(@argv : Array(String), stdin : IO = STDIN)
       @stdin = stdin
+      @skip_first = false
     end
 
-    def each_line(&block)
+    def each_line(&block : String ->)
       source.each(&block)
     end
 
     def skip_headers?
-      @skip_first ||= false
       if @skip_first
         @skip_first = false
         true
@@ -31,9 +33,7 @@ module Zone
       @argv.any?
     end
 
-    private
-
-    def source
+    private def source
       @source ||= begin
         if @argv.any?
           # Arguments provided - use them as timestamps
@@ -41,10 +41,10 @@ module Zone
         elsif !@stdin.tty?
           # No arguments but stdin is piped - read from stdin
           # Convert to array so it can be iterated multiple times (e.g., for headers)
-          @stdin.each_line(chomp: true).to_a
+          @stdin.each_line.map(&.chomp).to_a
         else
           # Interactive mode with no arguments - use current time
-          [Time.now.to_s]
+          [Time.local.to_s]
         end
       end
     end

@@ -1,6 +1,4 @@
-# frozen_string_literal: true
-
-require_relative 'timestamp_patterns'
+require 'timestamp_patterns'
 
 module Zone
   module Pattern
@@ -42,7 +40,7 @@ module Zone
     def transform_timestamp(match, output, transformation, logger)
       formatted = transformation.call(match)
       output.colorize_timestamp(formatted)
-    rescue StandardError => e
+    rescue Exception => e
       logger.warn("Could not parse time: #{e.message}")
       match
     end

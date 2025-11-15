@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 module Zone
   class FieldMapping
     def self.from_fields(fields)

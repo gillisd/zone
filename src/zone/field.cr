@@ -1,7 +1,5 @@
-# frozen_string_literal: true
-
-require_relative 'field_line'
-require_relative 'field_mapping'
+require 'field_line'
+require 'field_mapping'
 
 module Zone
   module Field

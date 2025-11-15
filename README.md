@@ -23,14 +23,21 @@ tail -f app.log | zone
 
 ## Installation
 
-```bash
-gem install zone
-```
-
-Or with Bundler:
+**Note: This project has been converted to Crystal!**
 
 ```bash
-bundle add zone
+# Clone the repository
+git clone https://github.com/gillisd/zone
+cd zone
+
+# Install dependencies
+shards install
+
+# Build the project
+crystal build src/zone.cr -o bin/zone
+
+# Or run directly
+crystal run src/zone.cr -- [options]
 ```
 
 ## How It Works

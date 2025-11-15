@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require 'time'
 require 'date'
 
@@ -28,7 +26,7 @@ module Zone
       end
 
       new(time)
-    rescue StandardError
+    rescue Exception
       raise ArgumentError, "Could not parse time '#{input}'"
     end
 
