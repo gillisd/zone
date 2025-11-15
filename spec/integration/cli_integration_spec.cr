@@ -240,11 +240,9 @@ describe "CLI Integration" do
     output.should match(/1736937000\s+extra\s+data/)
   end
 
-  it "uses current time with no arguments" do
-    # When STDIN is a tty (interactive), zone with no args uses Time.now
-    # In automated tests, STDIN is not a tty, so we skip this test
-    pending "Cannot test TTY behavior in automated tests"
-  end
+  # When STDIN is a tty (interactive), zone with no args uses Time.now
+  # In automated tests, STDIN is not a tty, so we skip this test
+  pending "uses current time with no arguments - Cannot test TTY behavior in automated tests"
 
   it "processes multiple timestamp arguments" do
     output, status = run_zone(
