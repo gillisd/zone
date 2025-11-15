@@ -203,7 +203,7 @@ class Test1010Behavior < Minitest::Test
     tsv = "col1\t1736937000\tcol3\ncol1\t1736940600\tcol3"
     output, status = run_zone_with_input(
       tsv,
-      "--field", "2", "--delimiter", "\t", "--iso8601"
+      "--field", "2", "--delimiter", "\t", "--iso8601", "--utc"
     )
 
     assert_equal 0, status
