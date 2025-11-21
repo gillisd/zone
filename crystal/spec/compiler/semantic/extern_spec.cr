@@ -1,0 +1,169 @@
+require "../../spec_helper"
+
+describe "Semantic: extern struct" do
+  it "declares extern struct with no constructor" do
+    assert_type(<<-CRYSTAL) { int32 }
+      @[Extern]
+      struct Foo
+        @x = uninitialized Int32
+
+        def x
+          @x
+        end
+      end
+
+      Foo.new.x
+      CRYSTAL
+  end
+
+  it "declares with constructor" do
+    assert_type(<<-CRYSTAL) { int32 }
+      @[Extern]
+      struct Foo
+        @x = uninitialized Int32
+
+        def initialize(@x)
+        end
+
+        def foo
+          @x
+        end
+      end
+
+      Foo.new(1).foo
+      CRYSTAL
+  end
+
+  it "overrides getter" do
+    assert_type(<<-CRYSTAL) { char }
+      @[Extern]
+      struct Foo
+        @x = uninitialized Int32
+
+        def x
+          'a'
+        end
+      end
+
+      Foo.new.x
+      CRYSTAL
+  end
+
+  it "can be passed to C fun" do
+    assert_type(<<-CRYSTAL) { float64 }
+      @[Extern]
+      struct Foo
+        @x = uninitialized Int32
+      end
+
+      lib LibFoo
+        fun foo(x : Foo) : Float64
+      end
+
+      LibFoo.foo(Foo.new)
+      CRYSTAL
+  end
+
+  it "can include module" do
+    assert_type(<<-CRYSTAL) { int32 }
+      module Moo
+        @x = uninitialized Int32
+
+        def x
+          @x
+        end
+      end
+
+      @[Extern]
+      struct Foo
+        include Moo
+      end
+
+      Foo.new.x
+      CRYSTAL
+  end
+
+  it "errors if using non-primitive for field type" do
+    assert_error <<-CRYSTAL, "only primitive types, pointers, structs, unions, enums and tuples are allowed in extern struct declarations"
+      class Bar
+      end
+
+      @[Extern]
+      struct Foo
+        @x = uninitialized Bar
+      end
+      CRYSTAL
+  end
+
+  it "errors if using non-primitive for field type via module" do
+    assert_error <<-CRYSTAL, "only primitive types, pointers, structs, unions, enums and tuples are allowed in extern struct declarations"
+      class Bar
+      end
+
+      module Moo
+        @x = uninitialized Bar
+      end
+
+      @[Extern]
+      struct Foo
+        include Moo
+      end
+      CRYSTAL
+  end
+
+  it "errors if using non-primitive type in constructor" do
+    assert_error <<-CRYSTAL, "only primitive types, pointers, structs, unions, enums and tuples are allowed in extern struct declarations"
+      class Bar
+      end
+
+      @[Extern]
+      struct Foo
+        def initialize
+          @x = Bar.new
+        end
+      end
+      CRYSTAL
+  end
+
+  it "declares extern union with no constructor" do
+    assert_type(<<-CRYSTAL) { int32 }
+      @[Extern(union: true)]
+      struct Foo
+        @x = uninitialized Int32
+
+        def x
+          @x
+        end
+      end
+
+      Foo.new.x
+      CRYSTAL
+  end
+
+  it "can use extern struct in lib" do
+    assert_type(<<-CRYSTAL) { types["Foo"] }
+      @[Extern]
+      struct Foo
+      end
+
+      lib LibFoo
+        fun foo(x : Foo) : Foo
+      end
+
+      foo = Foo.new
+      LibFoo.foo(foo)
+      CRYSTAL
+  end
+
+  it "can new with named args" do
+    assert_type(<<-CRYSTAL) { types["A"] }
+      @[Extern]
+      struct A
+        def initialize(@x : Int32)
+        end
+      end
+
+      A.new(x: 6)
+      CRYSTAL
+  end
+end
