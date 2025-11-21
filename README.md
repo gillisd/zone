@@ -32,18 +32,35 @@ tail -f app.log | zone
 git clone https://github.com/gillisd/zone.git
 cd zone
 
-# Build the executable
+# Build the executable (using Makefile - recommended)
+make compile           # Standard release build
+make compile:release   # Optimized build (smaller binary, stripped)
+make compile:static    # Static build (no dependencies, portable)
+
+# Or use Crystal directly
 crystal build src/cli.cr --release -o bin/zone
 
-# Install system-wide (optional)
-sudo cp bin/zone /usr/local/bin/
+# Or use the build script
+./build.sh
+
+# Install system-wide
+make install           # Or: sudo cp bin/zone /usr/local/bin/
 ```
 
-Or use the build script:
+### Build Options
+
+Zone includes a Makefile with several targets:
 
 ```bash
-./build.sh
+make help              # Show all available commands
+make test              # Run tests
+make clean             # Remove build artifacts
+make format            # Format code
 ```
+
+**Binary sizes:**
+- **Standard release**: ~539KB (stripped, dynamically linked)
+- **Static build**: ~2.6MB (fully portable, no dependencies)
 
 ### Requirements
 
