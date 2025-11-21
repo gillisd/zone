@@ -19,35 +19,53 @@ module Zone
     private def process_line(line : String, skip : Bool, output : Output, transformation : Proc(String, String?), options : Options, mapping : FieldMapping, logger : Log)
       return if skip
 
-      field = options.field
-      return unless field  # Should not happen as field mode requires field option
+      fields = options.fields
+      return if fields.empty?  # Should not happen as field mode requires field option
 
       field_line = FieldLine.parse(line, delimiter: options.delimiter, mapping: mapping, logger: logger)
 
-      # Check if field exists before transforming
-      original_value = field_line[field]
-      if original_value.nil?
-        logger.warn { "Field '#{field}' not found or out of bounds in line: #{line}" }
+      # Track all transformed values for highlighting
+      transformed_values = [] of String
+
+      # Process each field
+      fields.each do |field|
+        # Check if field exists before transforming
+        original_value = field_line[field]
+        if original_value.nil?
+          logger.warn { "Field '#{field}' not found or out of bounds in line: #{line}" }
+          next
+        end
+
+        # Transform the field
+        field_line.transform(field, &transformation)
+
+        # Get transformed value - if transformation failed, keep original
+        transformed_value = field_line[field]
+        if transformed_value.nil? || transformed_value == original_value
+          # Check if transformation actually failed (returned nil)
+          test_transform = transformation.call(original_value)
+          if test_transform.nil?
+            logger.warn { "Could not parse timestamp in field '#{field}': #{original_value.inspect}" }
+            next
+          end
+        end
+
+        transformed_values << (transformed_value || original_value)
+      end
+
+      # If no fields were successfully transformed, output original line
+      if transformed_values.empty?
+        output.puts(line)
         return
       end
 
-      # Transform the field
-      field_line.transform(field, &transformation)
-
-      # Get transformed value - if transformation failed, output original line
-      transformed_value = field_line[field]
-      if transformed_value.nil? || transformed_value == original_value
-        # Check if transformation actually failed (returned nil)
-        test_transform = transformation.call(original_value)
-        if test_transform.nil?
-          logger.warn { "Could not parse timestamp in field '#{field}': #{original_value.inspect}" }
-          # Output original line unchanged
-          output.puts(line)
-          return
-        end
+      # Highlight all transformed values
+      result = field_line.to_s
+      transformed_values.each do |value|
+        result_highlighted = output.colorize_timestamp(value)
+        result = result.sub(value, result_highlighted)
       end
-
-      output.puts_highlighted(field_line.to_s, highlight: transformed_value || original_value)
+      output.puts(result)
     end
 
     private def build_mapping(input : Input, options : Options) : Tuple(FieldMapping, String?)

@@ -25,9 +25,9 @@ describe "10/10 Behavior" do
     )
 
     status.should eq(0)
-    # Should preserve "Thomas" and use tab as output delimiter
+    # Should preserve "Thomas" and use comma as output delimiter (same as input)
     # Note: Crystal uses historical timezone offsets, so Tokyo in 1901 is +09:18, not +09:00
-    output.strip.should match(/^Thomas\t1900-12-31T14:11:59\+09:18$/)
+    output.strip.should match(/^Thomas,1900-12-31T14:11:59\+09:18$/)
   end
 
   it "field processing with comma and spaces" do
@@ -78,8 +78,8 @@ describe "10/10 Behavior" do
     lines.size.should eq(2)
     # Header line should be preserved
     lines[0].should match(/user.*timestamp.*status/)
-    # Data line should have transformed timestamp
-    lines[1].should match(/alice\t1736937000\tactive/)
+    # Data line should have transformed timestamp with comma delimiter
+    lines[1].should match(/alice,1736937000,active/)
   end
 
   # ====================
@@ -122,15 +122,15 @@ describe "10/10 Behavior" do
     output.strip.should match(/^a[\s\t]+1736937000[\s\t]+c$/)
   end
 
-  it "comma delimiter becomes tab in output" do
+  it "comma delimiter preserved in output" do
     output, status = run_zone_with_input(
       "a,2025-01-15T10:30:00Z,c",
       "--field", "2", "--delimiter", ",", "--unix"
     )
 
     status.should eq(0)
-    # Comma delimiter should become tab
-    output.strip.should eq("a\t1736937000\tc")
+    # Comma delimiter should be preserved (same as input)
+    output.strip.should eq("a,1736937000,c")
   end
 
   it "explicit delimiter preserved" do

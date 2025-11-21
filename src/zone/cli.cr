@@ -21,7 +21,7 @@ module Zone
       options.parse!(@argv)
       options.validate!
 
-      logger = setup_logger!(options.verbose)
+      logger = setup_logger!(options.verbose, options.silent)
 
       input = Input.new(@argv)
       output = Output.new(color_mode: options.color)
@@ -46,8 +46,8 @@ module Zone
       exit 1
     end
 
-    private def setup_logger!(verbose : Bool) : Log
-      Logging.build(verbose: verbose)
+    private def setup_logger!(verbose : Bool, silent : Bool) : Log
+      Logging.build(verbose: verbose, silent: silent)
     end
   end
 end

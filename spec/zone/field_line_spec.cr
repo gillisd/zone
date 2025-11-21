@@ -60,7 +60,8 @@ describe Zone::FieldLine do
       result = line.transform(2) { |v| v.upcase }
 
       result.should be(line)
-      line.to_s.should eq("foo\tBAR\tbaz")
+      # Output delimiter should match input delimiter (comma)
+      line.to_s.should eq("foo,BAR,baz")
     end
 
     it "transforms by name" do
@@ -69,7 +70,8 @@ describe Zone::FieldLine do
 
       line.transform("value") { |v| (v.to_i * 2).to_s }
 
-      line.to_s.should eq("test\t200")
+      # Output delimiter should match input delimiter (comma)
+      line.to_s.should eq("test,200")
     end
   end
 
@@ -78,15 +80,17 @@ describe Zone::FieldLine do
       line = Zone::FieldLine.parse("a,b,c", delimiter: ",")
       line.transform_all(&.upcase)
 
-      line.to_s.should eq("A\tB\tC")
+      # Output delimiter should match input delimiter (comma)
+      line.to_s.should eq("A,B,C")
     end
   end
 
   describe "#to_s" do
-    it "reconstructs line" do
+    it "reconstructs line with same delimiter" do
       line = Zone::FieldLine.parse("foo,bar,baz", delimiter: ",")
 
-      line.to_s.should eq("foo\tbar\tbaz")
+      # Output delimiter should match input delimiter (comma)
+      line.to_s.should eq("foo,bar,baz")
     end
 
     it "handles single field" do
@@ -136,7 +140,8 @@ describe Zone::FieldLine do
         .transform(3, &.upcase)
 
       result.should be(line)
-      line.to_s.should eq("A\tB\tC")
+      # Output delimiter should match input delimiter (comma)
+      line.to_s.should eq("A,B,C")
     end
   end
 end

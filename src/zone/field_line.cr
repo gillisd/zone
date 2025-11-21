@@ -62,10 +62,10 @@ module Zone
     def to_s : String
       output_delim = case @delimiter
       when Regex
-        "\t"
-      when ","
+        # Use tab for regex delimiters (can't reconstruct original)
         "\t"
       else
+        # Use the actual input delimiter for output
         @delimiter.as(String)
       end
 
@@ -73,8 +73,32 @@ module Zone
       when 1
         @fields[0].to_s
       else
-        @fields.join(output_delim)
+        # Quote fields that contain the delimiter
+        quoted_fields = @fields.map do |field|
+          if needs_quoting?(field, output_delim)
+            quote_field(field)
+          else
+            field
+          end
+        end
+        quoted_fields.join(output_delim)
       end
+    end
+
+    private def needs_quoting?(field : String, delimiter : String) : Bool
+      # Check if field contains the delimiter
+      # For regex delimiters (tab), check for tab, space, or common whitespace
+      if delimiter == "\t"
+        field.includes?(' ') || field.includes?('\t')
+      else
+        field.includes?(delimiter)
+      end
+    end
+
+    private def quote_field(field : String) : String
+      # Escape any existing quotes and wrap in quotes
+      escaped = field.gsub('"', "\"\"")
+      "\"#{escaped}\""
     end
 
     def to_a : Array(String)

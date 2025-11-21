@@ -302,4 +302,221 @@ describe "CLI Integration" do
     # -0500 is EST, which is UTC+5, so 16:30 EST = 21:30 UTC
     output.should match(/2025-01-15T21:30:00/)
   end
+
+  # Quoted timestamp tests
+  it "handles double-quoted ISO8601 timestamp" do
+    output, status = run_zone_with_input(
+      "\"2025-01-15T10:30:00+09:00\"",
+      "--zone", "UTC", "--iso8601"
+    )
+
+    status.should eq(0)
+    # Should convert to UTC (subtract 9 hours) and preserve quotes
+    output.strip.should eq("\"2025-01-15T01:30:00Z\"")
+  end
+
+  it "handles single-quoted ISO8601 timestamp" do
+    output, status = run_zone_with_input(
+      "'2025-01-15T10:30:00+09:00'",
+      "--zone", "UTC", "--iso8601"
+    )
+
+    status.should eq(0)
+    # Should convert to UTC (subtract 9 hours) and preserve quotes
+    output.strip.should eq("'2025-01-15T01:30:00Z'")
+  end
+
+  it "handles quoted unix timestamp" do
+    output, status = run_zone_with_input(
+      "\"1736937000\"",
+      "--zone", "America/New_York", "--pretty"
+    )
+
+    status.should eq(0)
+    # Should convert unix to pretty format and preserve quotes
+    output.should match(/"Jan 15, 2025/)
+    output.should match(/EST"/)
+  end
+
+  it "handles quoted timestamp in CSV field" do
+    output, status = run_zone_with_input(
+      "name,\"2025-01-15T10:30:00+09:00\",value",
+      "--zone", "UTC", "--iso8601"
+    )
+
+    status.should eq(0)
+    # Should convert timestamp in middle field and preserve quotes
+    output.strip.should eq("name,\"2025-01-15T01:30:00Z\",value")
+  end
+
+  it "handles multiple quoted timestamps on same line" do
+    output, status = run_zone_with_input(
+      "\"2025-01-15T10:30:00+09:00\" and \"2025-01-16T11:00:00+09:00\"",
+      "--zone", "UTC", "--iso8601"
+    )
+
+    status.should eq(0)
+    # Should convert both timestamps and preserve quotes
+    output.strip.should eq("\"2025-01-15T01:30:00Z\" and \"2025-01-16T02:00:00Z\"")
+  end
+
+  it "preserves quotes around non-timestamp content" do
+    output, status = run_zone_with_input(
+      "\"not a timestamp\" but \"2025-01-15T10:30:00+09:00\" is",
+      "--zone", "UTC", "--iso8601"
+    )
+
+    status.should eq(0)
+    # Should preserve quotes around non-timestamp text
+    output.should match(/"not a timestamp"/)
+    # Should convert the actual timestamp
+    output.strip.should eq("\"not a timestamp\" but \"2025-01-15T01:30:00Z\" is")
+  end
+
+  # Comma-separated field tests
+  it "handles comma-separated field indices" do
+    output, status = run_zone_with_input(
+      "1736937000,1736940600,1736944200",
+      "--field", "1,2,3", "--delimiter", ",", "--iso8601", "--zone", "UTC"
+    )
+
+    status.should eq(0)
+    # All three fields should be converted to ISO8601 (no commas in output)
+    fields = output.strip.split(",")
+    fields.size.should eq(3)
+    fields[0].should match(/2025-01-15T10:30:00/)
+    fields[1].should match(/2025-01-15T11:30:00/)
+    fields[2].should match(/2025-01-15T12:30:00/)
+  end
+
+  it "handles multiple --field flags" do
+    output, status = run_zone_with_input(
+      "1736937000,1736940600,data",
+      "--field", "1", "--field", "2", "--delimiter", ",", "--iso8601", "--zone", "UTC"
+    )
+
+    status.should eq(0)
+    # First two fields should be converted, third unchanged
+    fields = output.strip.split(",")
+    fields[0].should match(/2025-01-15T10:30:00/)
+    fields[1].should match(/2025-01-15T11:30:00/)
+    fields[2].should eq("data")
+  end
+
+  it "handles mixed comma-separated and multiple --field flags" do
+    output, status = run_zone_with_input(
+      "1736937000,1736940600,1736944200,data",
+      "--field", "1,2", "--field", "3", "--delimiter", ",", "--iso8601", "--zone", "UTC"
+    )
+
+    status.should eq(0)
+    # First three fields should be converted, fourth unchanged
+    parts = output.strip.split(",")
+    parts[0].should match(/2025-01-15T10:30:00/)
+    parts[1].should match(/2025-01-15T11:30:00/)
+    parts[2].should match(/2025-01-15T12:30:00/)
+    parts[3].should eq("data")
+  end
+
+  it "handles comma-separated field names with headers" do
+    input = "start,end,event\n1736937000,1736940600,meeting"
+    output, status = run_zone_with_input(
+      input,
+      "--field", "start,end", "--delimiter", ",", "--headers", "--iso8601", "--zone", "UTC"
+    )
+
+    status.should eq(0)
+    lines = output.strip.split("\n")
+    lines[0].should match(/start.*end.*event/)  # Header preserved
+    # Both timestamps converted (check as fields)
+    fields = lines[1].split(",")
+    fields[0].should match(/2025-01-15T10:30:00/)
+    fields[1].should match(/2025-01-15T11:30:00/)
+    fields[2].should eq("meeting")
+  end
+
+  # Output quoting tests
+  it "quotes pretty output when delimiter is comma" do
+    output, status = run_zone_with_input(
+      "1736937000,data",
+      "--field", "1", "--delimiter", ",", "--pretty"
+    )
+
+    status.should eq(0)
+    # Pretty format contains comma, so it should be quoted
+    output.strip.should match(/^"Jan 15, 2025[^"]*",data$/)
+  end
+
+  it "quotes pretty output when delimiter is space" do
+    output, status = run_zone_with_input(
+      "1736937000 data",
+      "--field", "1", "--delimiter", "/\\s+/", "--pretty"
+    )
+
+    status.should eq(0)
+    # Pretty format contains spaces, so it should be quoted
+    output.strip.should match(/^"Jan 15, 2025[^"]*"\s+data$/)
+  end
+
+  it "does not quote ISO8601 output with comma delimiter" do
+    output, status = run_zone_with_input(
+      "1736937000,data",
+      "--field", "1", "--delimiter", ",", "--iso8601", "--zone", "UTC"
+    )
+
+    status.should eq(0)
+    # ISO8601 format has no commas, so no quoting needed
+    output.strip.should_not match(/^"/)
+    output.strip.should match(/^2025-01-15T10:30:00Z,data$/)
+  end
+
+  it "quotes unix output when delimiter is present in output" do
+    # Unix timestamps are just numbers, unlikely to need quoting
+    # but if they somehow did, they should be quoted
+    output, status = run_zone_with_input(
+      "2025-01-15T10:30:00Z,data",
+      "--field", "1", "--delimiter", ",", "--unix"
+    )
+
+    status.should eq(0)
+    # Unix timestamp is just numbers, no quoting needed
+    output.strip.should match(/^1736937000,data$/)
+  end
+
+  # Silent mode tests
+  it "suppresses warnings in silent mode" do
+    output, status = run_zone_with_input(
+      "a,b,c",
+      "--field", "5", "--delimiter", ",", "--silent"
+    )
+
+    status.should eq(0)
+    # Should not contain warning emoji or text
+    output.should_not match(/⚠/)
+    output.should_not match(/warn/i)
+  end
+
+  it "shows warnings by default" do
+    output, status = run_zone_with_input(
+      "a,b,c",
+      "--field", "5", "--delimiter", ","
+    )
+
+    status.should eq(0)
+    # Should contain warning
+    output.should match(/⚠/)
+  end
+
+  it "silent mode works with verbose mode" do
+    # --silent should override --verbose for user-facing warnings
+    output, status = run_zone_with_input(
+      "a,b,c",
+      "--field", "5", "--delimiter", ",", "--silent", "--verbose"
+    )
+
+    status.should eq(0)
+    # Should not show user warnings even with verbose
+    output.should_not match(/⚠/)
+    # But debug output may still appear (that's OK)
+  end
 end
