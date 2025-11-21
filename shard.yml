@@ -1,0 +1,13 @@
+name: zone
+version: 0.1.2
+
+authors:
+  - David Gillis <david@flipmine.com>
+
+crystal: >= 1.0.0
+
+license: MIT
+
+targets:
+  zone:
+    main: src/cli.cr

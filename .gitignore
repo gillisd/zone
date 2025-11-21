@@ -9,3 +9,10 @@
 Gemfile.lock
 /planningdocs
 /odocs
+
+# Crystal
+/bin/zone
+/lib/
+/.shards/
+*.dwarf
+.crystal/
