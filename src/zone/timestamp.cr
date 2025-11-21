@@ -34,11 +34,27 @@ module Zone
       end
 
       # Try standard parsing methods
-      Time.parse_rfc3339?(input) ||
-        Time.parse_iso8601?(input) ||
-        Time.parse?(input, "%Y-%m-%d %H:%M:%S %z") ||
-        Time.parse?(input, "%Y-%m-%d %H:%M:%S") ||
-        (raise ArgumentError.new("Could not parse time '#{input}'"))
+      begin
+        return Time.parse_rfc3339(input)
+      rescue
+      end
+
+      begin
+        return Time.parse_iso8601(input)
+      rescue
+      end
+
+      begin
+        return Time.parse(input, "%Y-%m-%d %H:%M:%S %z", Time::Location::UTC)
+      rescue
+      end
+
+      begin
+        return Time.parse(input, "%Y-%m-%d %H:%M:%S", Time::Location.local)
+      rescue
+      end
+
+      raise ArgumentError.new("Could not parse time '#{input}'")
     end
 
     def initialize(@time : Time, @zone : String? = nil)
@@ -75,7 +91,7 @@ module Zone
       if @time.offset == 0
         @time.to_s("%Y-%m-%dT%H:%M:%SZ")
       else
-        @time.to_rfc3339
+        @time.to_s("%Y-%m-%dT%H:%M:%S%:z")
       end
     end
 
@@ -153,7 +169,7 @@ module Zone
       offset = match_data["offset"]
 
       reordered = "#{dow} #{mon} #{day} #{time} #{offset} #{year}"
-      Time.parse(reordered, "%a %b %d %H:%M:%S %z %Y")
+      Time.parse(reordered, "%a %b %d %H:%M:%S %z %Y", Time::Location::UTC)
     end
   end
 end

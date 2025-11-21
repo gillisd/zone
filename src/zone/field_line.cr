@@ -2,6 +2,7 @@ require "./field_mapping"
 
 module Zone
   class FieldLine
+    @fields : Array(String)
     def self.parse(text : String, delimiter : String, mapping : FieldMapping? = nil, logger : Log? = nil) : FieldLine
       parsed_delimiter = parse_delimiter(delimiter)
 

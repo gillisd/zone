@@ -29,6 +29,10 @@ module Zone
       @argv.any?
     end
 
+    def first_line? : String?
+      source.first?
+    end
+
     private def source : Array(String)
       @source ||= begin
         if @argv.any?

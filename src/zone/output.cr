@@ -2,6 +2,7 @@ require "./colors"
 
 module Zone
   class Output
+    @colors : Colors::ANSI.class | Colors::PlainText.class
     def initialize(color_mode : String = "auto", @stream : IO = STDOUT)
       @colors = colorize(color_mode)
     end

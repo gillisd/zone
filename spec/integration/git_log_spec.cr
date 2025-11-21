@@ -1,7 +1,6 @@
 require "../integration_helper"
 
 describe "Git Log Integration" do
-  include IntegrationHelper
 
   it "converts git log default format" do
     input = <<-GIT

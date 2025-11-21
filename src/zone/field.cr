@@ -48,7 +48,7 @@ module Zone
       return {FieldMapping.numeric, nil} unless options.headers
 
       input.mark_skip_headers!
-      header_line = input.each_line.first?
+            header_line = input.first_line?
 
       return {FieldMapping.numeric, nil} unless header_line
 

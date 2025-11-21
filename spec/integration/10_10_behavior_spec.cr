@@ -3,7 +3,6 @@ require "../integration_helper"
 # Integration tests defining 10/10 expected behavior for zone CLI
 # These tests capture the correct behavior from the original implementation
 describe "10/10 Behavior" do
-  include IntegrationHelper
 
   # ====================
   # CORE BEHAVIOR: Full Line Preservation

@@ -8,7 +8,7 @@ module Zone
     # Build a transformation lambda.
     #
     def build(zone : String, format : Symbol | Hash(Symbol, String | Int32)) : Proc(String, String?)
-      ->(value : String) do
+      ->(value : String) : String? do
         timestamp = Timestamp.parse(value)
         converted = convert_zone(timestamp, zone)
         format_timestamp(converted, format).to_s

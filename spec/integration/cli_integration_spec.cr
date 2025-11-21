@@ -1,7 +1,6 @@
 require "../integration_helper"
 
 describe "CLI Integration" do
-  include IntegrationHelper
 
   it "converts timestamp to UTC" do
     output, status = run_zone("2025-01-15T10:30:00Z", "--utc", "--iso8601")
