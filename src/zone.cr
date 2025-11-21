@@ -61,10 +61,18 @@ module Zone
 
       if Dir.exists?(path)
         scan_zoneinfo_dir(base_dir, path, zones)
-      elsif File.file?(path) && File.readable?(path)
-        # Extract relative path from base as timezone name
-        zone_name = path.lchop(base_dir)
-        zones << zone_name unless zone_name.empty?
+      elsif File.file?(path)
+        # Check if file is readable
+        begin
+          info = File.info(path)
+          if info.file? && info.permissions.includes?(File::Permissions::OwnerRead)
+            # Extract relative path from base as timezone name
+            zone_name = path.lchop(base_dir)
+            zones << zone_name unless zone_name.empty?
+          end
+        rescue
+          # Skip files we can't access
+        end
       end
     end
   end
