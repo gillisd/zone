@@ -1,0 +1,8 @@
+site/
+.venv/
+__pycache__/
+
+# Devenv
+.devenv*
+devenv.local.nix
+.pre-commit-config.yaml
