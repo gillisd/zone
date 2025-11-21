@@ -102,7 +102,7 @@ module Zone
     def to_pretty(style : Int32 = 1) : String
       case style
       when 1
-        @time.to_s("%b %d, %Y - %l:%M %p %Z")
+        @time.to_s("%b %d, %Y - %l:%M %P %Z")
       when 2
         @time.to_s("%b %d, %Y - %H:%M %Z")
       when 3

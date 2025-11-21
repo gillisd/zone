@@ -43,7 +43,7 @@ module Zone
         end
 
         opts.on("-p [STYLE]", "--pretty [STYLE]", "Pretty format (1=12hr, 2=24hr, 3=ISO-compact, default: 1)") do |style|
-          style_int = style ? style.to_i : 1
+          style_int = (style.nil? || style.empty?) ? 1 : style.to_i
           unless [1, 2, 3].includes?(style_int)
             raise ArgumentError.new("Invalid pretty format -p#{style_int} (must be 1, 2, or 3)")
           end
