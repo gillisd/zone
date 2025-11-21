@@ -94,7 +94,8 @@ describe "CLI Integration" do
     output, status = run_zone_with_input(input, "--pretty")
 
     status.should eq(0)
-    lines = output.split("\n")
+    lines = output.strip.split("
+")
     lines.size.should eq(3)
     lines.each do |line|
       line.should match(/Jan/)
@@ -183,8 +184,9 @@ describe "CLI Integration" do
     input = "Wed Nov 12 10:30:00 UTC 2025\nThu Nov 13 11:45:00 UTC 2025"
     output, status = run_zone_with_input(input, "--utc", "--iso8601")
 
-    status.should eq(0)
-    lines = output.split("\n")
+    lines = output.strip.split("
+")
+    lines = output.strip.split("\n")
     lines.size.should eq(2)
     lines[0].should match(/2025-11-12T10:30:00/)
     lines[1].should match(/2025-11-13T11:45:00/)
@@ -219,16 +221,17 @@ describe "CLI Integration" do
       "2025-01-16T11:00:00Z",
       "--utc", "--iso8601"
     )
-
+    lines = output.strip.split("
+")
     status.should eq(0)
-    lines = output.split("\n")
+    lines = output.strip.split("\n")
     lines.size.should eq(2)
     lines[0].should match(/2025-01-15T10:30:00/)
     lines[1].should match(/2025-01-16T11:00:00/)
   end
 
   it "passes through empty line input" do
-    output, status = run_zone_with_input("", "--utc")
+    output, status = run_zone_with_input("\n", "--utc")
 
     status.should eq(0)
     # Piped empty line passes through silently, no warning

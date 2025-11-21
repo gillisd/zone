@@ -33,6 +33,21 @@ module Zone
         return parse_git_log(match)
       end
 
+      # Try date command format with zone name
+      if match = input.match(/^(?<dow>[A-Z][a-z]{2}) (?<mon>[A-Z][a-z]{2}) (?<day>\d{1,2}) (?<time>\d{2}:\d{2}:\d{2}) (?<zone>\w+) (?<year>\d{4})$/)
+        return parse_date_command(match)
+      end
+
+      # Try date-only with timezone offset (e.g., "1901-01-01+19:07Z")
+      if match = input.match(/^(\d{4}-\d{2}-\d{2})([\+\-]\d{2}:\d{2})Z?$/)
+        date_part = match[1]
+        offset_part = match[2]
+        begin
+          return Time.parse("#{date_part}T00:00:00#{offset_part}", "%Y-%m-%dT%H:%M:%S%:z", Time::Location::UTC)
+        rescue
+        end
+      end
+
       # Try standard parsing methods
       begin
         return Time.parse_rfc3339(input)
@@ -100,13 +115,19 @@ module Zone
     end
 
     def to_pretty(style : Int32 = 1) : String
+      # Get zone abbreviation (e.g., "EST") instead of location name
+      zone_abbr = @time.zone.name || @time.location.name
+
       case style
       when 1
-        @time.to_s("%b %d, %Y - %l:%M %P %Z")
+        base = @time.to_s("%b %d, %Y - %l:%M %P")
+        "#{base} #{zone_abbr}"
       when 2
-        @time.to_s("%b %d, %Y - %H:%M %Z")
+        base = @time.to_s("%b %d, %Y - %H:%M")
+        "#{base} #{zone_abbr}"
       when 3
-        @time.to_s("%Y-%m-%d %H:%M %Z")
+        base = @time.to_s("%Y-%m-%d %H:%M")
+        "#{base} #{zone_abbr}"
       else
         raise ArgumentError.new("Invalid pretty style '#{style}' (must be 1, 2, or 3)")
       end
@@ -170,6 +191,35 @@ module Zone
 
       reordered = "#{dow} #{mon} #{day} #{time} #{offset} #{year}"
       Time.parse(reordered, "%a %b %d %H:%M:%S %z %Y", Time::Location::UTC)
+    end
+
+    private def self.parse_date_command(match_data : Regex::MatchData) : Time
+      # Date command format: "Wed Nov 12 19:13:17 UTC 2025"
+      dow = match_data["dow"]
+      mon = match_data["mon"]
+      day = match_data["day"]
+      time = match_data["time"]
+      zone_name = match_data["zone"]
+      year = match_data["year"]
+
+      # Load the timezone
+      location = case zone_name
+      when "UTC"
+        Time::Location::UTC
+      when "Local"
+        Time::Location.local
+      else
+        begin
+          Time::Location.load(zone_name)
+        rescue
+          # If zone is not recognized, assume UTC
+          Time::Location::UTC
+        end
+      end
+
+      # Parse without zone first, then set location
+      time_str = "#{dow} #{mon} #{day} #{time} #{year}"
+      Time.parse(time_str, "%a %b %d %H:%M:%S %Y", location)
     end
   end
 end
