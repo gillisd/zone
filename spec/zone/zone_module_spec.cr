@@ -30,8 +30,8 @@ describe Zone do
       tz.try(&.name).should match(/New_York/)
     end
 
-    it "finds US timezone" do
-      pending "TZInfo data varies by environment - US/Eastern may not exist"
+    pending "finds US timezone" do
+      # TZInfo data varies by environment - US/Eastern may not exist
       tz = Zone.find("eastern")
 
       tz.should_not be_nil
