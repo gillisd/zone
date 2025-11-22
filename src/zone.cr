@@ -7,10 +7,20 @@ require "./zone/cli"
 module Zone
   class Error < Exception; end
 
+  # Module-level logger for timezone operations
+  @@logger : Log? = nil
+
+  def self.logger=(logger : Log)
+    @@logger = logger
+  end
+
   def self.find(keyword : String) : Time::Location?
     # Try exact match first
     begin
-      return Time::Location.load(keyword)
+      location = Time::Location.load(keyword)
+      # Log successful exact match at info level (verbose >= 1)
+      @@logger.try &.info { "Matched timezone '#{keyword}' exactly" }
+      return location
     rescue
       # Fall through to fuzzy search
     end
@@ -101,7 +111,12 @@ module Zone
     # If not found, try global pattern
     found ||= all_zones.find { |zone| global_pattern.matches?(zone) }
 
-    return nil unless found
+    if found
+      @@logger.try &.info { "Fuzzy matched '#{keyword}' → '#{found}'" }
+    else
+      @@logger.try &.info { "No timezone match found for '#{keyword}'" }
+      return nil
+    end
 
     begin
       Time::Location.load(found)

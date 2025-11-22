@@ -19,9 +19,13 @@ module Zone
     def run
       options = Options.new
       options.parse!(@argv)
-      options.validate!
 
       logger = setup_logger!(options.verbose, options.silent)
+
+      # Set module-level logger for Zone.find() fuzzy matching
+      Zone.logger = logger
+
+      options.validate!
 
       input = Input.new(@argv)
       output = Output.new(color_mode: options.color)
@@ -46,7 +50,7 @@ module Zone
       exit 1
     end
 
-    private def setup_logger!(verbose : Bool, silent : Bool) : Log
+    private def setup_logger!(verbose : Int32, silent : Bool) : Log
       Logging.build(verbose: verbose, silent: silent)
     end
   end

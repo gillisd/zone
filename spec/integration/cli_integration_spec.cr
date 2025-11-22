@@ -117,9 +117,10 @@ describe "CLI Integration" do
   end
 
   it "enables verbose logging" do
-    output, status = run_zone("2025-01-15T10:30:00Z", "--verbose", "--utc")
+    output, status = run_zone("2025-01-15T10:30:00Z", "--verbose", "--verbose", "--utc")
 
     status.should eq(0)
+    # Verbose level 2 shows DEBUG output
     output.should match(/DEBUG/)
   end
 
@@ -518,5 +519,35 @@ describe "CLI Integration" do
     # Should not show user warnings even with verbose
     output.should_not match(/⚠/)
     # But debug output may still appear (that's OK)
+  end
+
+  # Tiered verbose mode tests
+  it "verbose level 1 shows timezone fuzzy matching" do
+    output, status = run_zone("2025-01-15T10:30:00Z", "-v", "--zone", "tokyo", "--iso8601")
+
+    status.should eq(0)
+    # Should show fuzzy match info (→ is the info prefix)
+    output.should match(/→.*tokyo.*Asia\/Tokyo/i)
+  end
+
+  it "verbose level 2 shows pattern matching details" do
+    output, status = run_zone_with_input(
+      "Event at 2025-01-15T10:30:00Z happened",
+      "-v", "-v", "--utc"
+    )
+
+    status.should eq(0)
+    # Should show which pattern matched (DEBUG: is the debug prefix)
+    output.should match(/DEBUG:.*Matched.*timestamp/i)
+    output.should match(/ISO8601_ZULU/i)
+  end
+
+  it "verbose level 3 shows full debug output" do
+    output, status = run_zone("2025-01-15T10:30:00Z", "-v", "-v", "-v", "--zone", "tokyo")
+
+    status.should eq(0)
+    # Should show both fuzzy matching (→) and pattern details (DEBUG:)
+    output.should match(/→.*tokyo.*Asia\/Tokyo/i)
+    output.should match(/DEBUG:.*Matched.*timestamp/i)
   end
 end

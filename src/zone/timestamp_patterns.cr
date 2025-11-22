@@ -81,12 +81,15 @@ module Zone
     def self.replace_all(text : String, logger : Log? = nil, &block : String, Regex -> String) : String
       result = text.dup
       matches = 0
+      pattern_matches = Hash(String, Int32).new(0)
 
       patterns.each do |pattern|
+        pattern_name = pattern_name_from_constant(pattern)
         result = result.gsub(pattern) do |match|
           next match unless valid_timestamp?(match, pattern)
 
           matches += 1
+          pattern_matches[pattern_name] += 1
 
           begin
             yield(match, pattern)
@@ -97,9 +100,34 @@ module Zone
         end
       end
 
-      logger.try &.debug { "Matched #{matches} timestamp(s)" } if logger && matches > 0
+      if logger && matches > 0
+        logger.debug { "Matched #{matches} timestamp(s)" }
+        # Log pattern details at debug level (verbose >= 2)
+        pattern_matches.each do |name, count|
+          plural = count == 1 ? "" : "es"
+          logger.debug { "  #{name}: #{count} match#{plural}" }
+        end
+      end
 
       result
+    end
+
+    # Get human-readable pattern name from constant
+    private def self.pattern_name_from_constant(pattern : Regex) : String
+      case pattern
+      when P01_ISO8601_WITH_TZ then "ISO8601_WITH_TZ"
+      when P02_ISO8601_ZULU then "ISO8601_ZULU"
+      when P03_ISO8601_SPACE_WITH_OFFSET then "ISO8601_SPACE_WITH_OFFSET"
+      when P04_ISO8601_SPACE then "ISO8601_SPACE"
+      when P05_PRETTY1_12HR then "PRETTY1_12HR"
+      when P06_PRETTY2_24HR then "PRETTY2_24HR"
+      when P07_PRETTY3_ISO then "PRETTY3_ISO"
+      when P08_UNIX_TIMESTAMP then "UNIX_TIMESTAMP"
+      when P09_RELATIVE_TIME then "RELATIVE_TIME"
+      when P10_GIT_LOG then "GIT_LOG"
+      when P11_DATE_COMMAND then "DATE_COMMAND"
+      else "UNKNOWN"
+      end
     end
 
     #

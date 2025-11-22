@@ -8,7 +8,7 @@ module Zone
     property format : Symbol | Hash(Symbol, String | Int32)
     property color : String
     property headers : Bool
-    property verbose : Bool
+    property verbose : Int32
     property silent : Bool
 
     def initialize
@@ -18,7 +18,7 @@ module Zone
       @format = {:pretty => 1} of Symbol => (String | Int32)
       @color = "auto"
       @headers = false
-      @verbose = false
+      @verbose = 0
       @silent = false
     end
 
@@ -103,8 +103,8 @@ module Zone
           @color = mode
         end
 
-        opts.on("--verbose", "-v", "Show debug output") do
-          @verbose = true
+        opts.on("--verbose", "-v", "Show debug output (-v, -vv, -vvv for more detail)") do
+          @verbose += 1
         end
 
         opts.on("--silent", "-s", "Suppress warnings") do
