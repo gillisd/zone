@@ -17,13 +17,47 @@ module Zone
 
     def self.parse_delimiter(delimiter_string : String) : String | Regex
       if delimiter_string.starts_with?("/") && delimiter_string.ends_with?("/")
-        # Regex delimiter wrapped in slashes: "/\s+/" -> /\s+/
         pattern = delimiter_string[1..-2]
         Regex.new(pattern)
       else
-        # String delimiter: "," -> ","
-        delimiter_string
+        unescape(delimiter_string)
       end
+    end
+
+    private def self.unescape(str : String) : String
+      result = String.build do |io|
+        i = 0
+        while i < str.size
+          if str[i] == '\\' && i + 1 < str.size
+            case str[i + 1]
+            when '0'  then io << 0_u8.chr
+            when 'n'  then io << '\n'
+            when 't'  then io << '\t'
+            when 'r'  then io << '\r'
+            when '\\' then io << '\\'
+            when 'x'
+              if i + 3 < str.size
+                hex = str[i + 2..i + 3]
+                if hex.matches?(/^[0-9a-fA-F]{2}$/)
+                  io << hex.to_u8(16).chr
+                  i += 2
+                else
+                  io << str[i]
+                end
+              else
+                io << str[i]
+              end
+            else
+              io << str[i]
+            end
+            i += 2
+          else
+            io << str[i]
+            i += 1
+          end
+        end
+      end
+      result
     end
 
     def self.split_line(line : String, delimiter : String | Regex) : Array(String)

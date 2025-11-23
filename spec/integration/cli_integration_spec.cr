@@ -550,4 +550,78 @@ describe "CLI Integration" do
     output.should match(/→.*tokyo.*Asia\/Tokyo/i)
     output.should match(/DEBUG:.*Matched.*timestamp/i)
   end
+
+  # Compact date format tests (YYYYMMDD)
+  it "parses compact date format YYYYMMDD" do
+    output, status = run_zone("20251121", "--utc", "--iso8601")
+
+    status.should eq(0)
+    output.should match(/2025-11-21/)
+  end
+
+  it "parses compact date format in text" do
+    output, status = run_zone_with_input(
+      "Event on 20251121 was important",
+      "--utc", "--iso8601"
+    )
+
+    status.should eq(0)
+    output.should match(/2025-11-21/)
+  end
+
+  # 12-hour time with AM/PM tests
+  it "parses 12-hour time with PM and timezone" do
+    output, status = run_zone("2025-11-15 03:54:41 PM EST", "--utc", "--iso8601")
+
+    status.should eq(0)
+    # 3:54 PM EST = 15:54 EST = 20:54 UTC
+    output.should match(/2025-11-15T20:54:41Z/)
+  end
+
+  it "parses 12-hour time with AM and timezone" do
+    output, status = run_zone("2025-11-15 03:54:41 AM EST", "--utc", "--iso8601")
+
+    status.should eq(0)
+    # 3:54 AM EST = 03:54 EST = 08:54 UTC
+    output.should match(/2025-11-15T08:54:41Z/)
+  end
+
+  it "parses multiple 12-hour timestamps in field mode" do
+    input = "id created_at expires_at valid\n" +
+            "645164de584e8b007b325d9c6f1ed04b 2025-11-15 03:54:41 PM EST 2025-04-01 04:08:00 PM EST true"
+    output, status = run_zone_with_input(input, "--utc", "--iso8601")
+
+    status.should eq(0)
+    # Both timestamps should be converted correctly
+    # EST is UTC-5 year-round: 3:54 PM = 15:54, 15:54 + 5 = 20:54 UTC
+    # EST is UTC-5 year-round: 4:08 PM = 16:08, 16:08 + 5 = 21:08 UTC
+    output.should match(/2025-11-15T20:54:41Z/)
+    output.should match(/2025-04-01T21:08:00Z/)
+  end
+
+  it "handles null byte delimiter \\0" do
+    input = "field1\x00#{Time.utc(2025, 1, 15, 10, 30, 0).to_s}\x00field3"
+    output, status = run_zone_with_input(input, "--field", "2", "--delimiter", "\\0", "--utc", "--iso8601")
+
+    status.should eq(0)
+    output.should match(/2025-01-15T10:30:00Z/)
+    output.should contain("field1")
+    output.should contain("field3")
+  end
+
+  it "handles tab delimiter \\t" do
+    input = "field1\t2025-01-15 10:30:00\tfield3"
+    output, status = run_zone_with_input(input, "--field", "2", "--delimiter", "\\t", "--utc", "--iso8601")
+
+    status.should eq(0)
+    output.should match(/2025-01-15T10:30:00Z/)
+  end
+
+  it "handles hex escape sequence \\x00" do
+    input = "field1\x00#{Time.utc(2025, 1, 15, 10, 30, 0).to_s}\x00field3"
+    output, status = run_zone_with_input(input, "--field", "2", "--delimiter", "\\x00", "--utc", "--iso8601")
+
+    status.should eq(0)
+    output.should match(/2025-01-15T10:30:00Z/)
+  end
 end

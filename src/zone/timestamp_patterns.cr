@@ -1,62 +1,27 @@
 require "log"
 
 module Zone
-  #
-  # Pattern matching for timestamps in arbitrary text.
-  #
-  # Provides regex patterns and utilities for finding and replacing
-  # timestamps embedded in unstructured text.
-  #
   module TimestampPatterns
-    # Patterns are prefixed with P## to define priority order (most specific first).
-    # To add a new pattern, simply define a new Regexp constant with appropriate priority number.
-    # It will be automatically included in pattern matching.
-
-    # ISO 8601 with timezone offset (e.g., 2025-01-15T10:30:00+09:00)
-    P01_ISO8601_WITH_TZ = /\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?[+-]\d{2}:\d{2}\b/
-
-    # ISO 8601 with Zulu (UTC) timezone (e.g., 2025-01-15T10:30:00Z)
-    P02_ISO8601_ZULU = /\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\b/
-
-    # ISO 8601 with space separator and offset (e.g., 2025-01-15 10:30:00 -0500) - Ruby Time.now.to_s format
+    P01_ISO8601_WITH_TZ           = /\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?[+-]\d{2}:\d{2}\b/
+    P02_ISO8601_ZULU              = /\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\b/
     P03_ISO8601_SPACE_WITH_OFFSET = /\b\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)? [+-]\d{4}\b/
+    P04_ISO8601_SPACE             = /\b\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?(?! [+-]\d| [AP]M)/
+    P04A_12HR_WITH_TZ             = /\b\d{4}-\d{2}-\d{2} \d{1,2}:\d{2}:\d{2} [AP]M [A-Z]{3,4}\b/
+    P05_PRETTY1_12HR              = /\b[A-Z][a-z]{2} \d{2}, \d{4} - \s?\d{1,2}:\d{2} [AP]M [A-Z]{3,4}\b/
+    P06_PRETTY2_24HR              = /\b[A-Z][a-z]{2} \d{2}, \d{4} - \d{2}:\d{2} [A-Z]{3,4}\b/
+    P07_PRETTY3_ISO               = /\b\d{4}-\d{2}-\d{2} \d{2}:\d{2} [A-Z]{3,4}\b/
+    P08_UNIX_TIMESTAMP            = /(?<![0-9a-fA-F])(?:1\d{9}|2[0-1]\d{8})(?![0-9a-fA-F])/
+    P09_RELATIVE_TIME             = /\b\d+\s+(?:second|minute|hour|day|week|month|year)s?\s+(?:ago|from now)\b/i
+    P10_GIT_LOG                   = /\b[A-Z][a-z]{2} [A-Z][a-z]{2} \d{1,2} \d{2}:\d{2}:\d{2} \d{4} [+-]\d{4}\b/
+    P11_DATE_COMMAND              = /\b[A-Z][a-z]{2} [A-Z][a-z]{2} \d{1,2} \d{2}:\d{2}:\d{2} [A-Z]{3,4} \d{4}\b/
+    P12_COMPACT_DATE              = /\b(?:19[7-9]\d|20\d{2})(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\b/
 
-    # ISO 8601 with space separator, no timezone (e.g., 2025-01-15 10:30:00) - common SQL/database format
-    # Use negative lookahead to ensure not followed by timezone offset
-    P04_ISO8601_SPACE = /\b\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?(?! [+-]\d)/
-
-    # Zone pretty1 format: 12hr with AM/PM (e.g., "Jan 15, 2025 - 10:30 AM UTC" or "Jan 15, 2025 -  1:30 AM UTC")
-    P05_PRETTY1_12HR = /\b[A-Z][a-z]{2} \d{2}, \d{4} - \s?\d{1,2}:\d{2} [AP]M [A-Z]{3,4}\b/
-
-    # Zone pretty2 format: 24hr without AM/PM (e.g., "Jan 15, 2025 - 10:30 UTC")
-    P06_PRETTY2_24HR = /\b[A-Z][a-z]{2} \d{2}, \d{4} - \d{2}:\d{2} [A-Z]{3,4}\b/
-
-    # Zone pretty3 format: ISO-style compact (e.g., "2025-01-15 10:30 UTC")
-    P07_PRETTY3_ISO = /\b\d{4}-\d{2}-\d{2} \d{2}:\d{2} [A-Z]{3,4}\b/
-
-    # Unix timestamp (10 digits, 2001-2036, e.g., 1736937000)
-    # Matches timestamps starting with 1 (2001-2033) or 20-21 (2033-2039)
-    # Avoids false positives from phone numbers, order IDs, hex strings (commit hashes), etc.
-    # Uses hex boundary check to prevent matching within commit hashes
-    P08_UNIX_TIMESTAMP = /(?<![0-9a-fA-F])(?:1\d{9}|2[0-1]\d{8})(?![0-9a-fA-F])/
-
-    # Relative time expressions (e.g., "5 hours ago", "3 days from now")
-    P09_RELATIVE_TIME = /\b\d+\s+(?:second|minute|hour|day|week|month|year)s?\s+(?:ago|from now)\b/i
-
-    # Git log format (e.g., "Fri Nov 14 23:48:24 2025 +0000", "Wed Nov 5 11:24:19 2025 -0500")
-    P10_GIT_LOG = /\b[A-Z][a-z]{2} [A-Z][a-z]{2} \d{1,2} \d{2}:\d{2}:\d{2} \d{4} [+-]\d{4}\b/
-
-    # Date command output format (e.g., "Wed Nov 12 19:13:17 UTC 2025")
-    P11_DATE_COMMAND = /\b[A-Z][a-z]{2} [A-Z][a-z]{2} \d{1,2} \d{2}:\d{2}:\d{2} [A-Z]{3,4} \d{4}\b/
-
-    #
-    # Returns all timestamp patterns in priority order.
-    #
     def self.patterns : Array(Regex)
       [
         P01_ISO8601_WITH_TZ,
         P02_ISO8601_ZULU,
         P03_ISO8601_SPACE_WITH_OFFSET,
+        P04A_12HR_WITH_TZ,
         P04_ISO8601_SPACE,
         P05_PRETTY1_12HR,
         P06_PRETTY2_24HR,
@@ -65,19 +30,14 @@ module Zone
         P09_RELATIVE_TIME,
         P10_GIT_LOG,
         P11_DATE_COMMAND,
+        P12_COMPACT_DATE,
       ]
     end
 
-    #
-    # Check if text contains any timestamp patterns.
-    #
     def self.match?(text : String) : Bool
       patterns.any? { |pattern| pattern.matches?(text) }
     end
 
-    #
-    # Replace all timestamp patterns in text.
-    #
     def self.replace_all(text : String, logger : Log? = nil, &block : String, Regex -> String) : String
       result = text.dup
       matches = 0
@@ -102,7 +62,6 @@ module Zone
 
       if logger && matches > 0
         logger.debug { "Matched #{matches} timestamp(s)" }
-        # Log pattern details at debug level (verbose >= 2)
         pattern_matches.each do |name, count|
           plural = count == 1 ? "" : "es"
           logger.debug { "  #{name}: #{count} match#{plural}" }
@@ -112,12 +71,12 @@ module Zone
       result
     end
 
-    # Get human-readable pattern name from constant
     private def self.pattern_name_from_constant(pattern : Regex) : String
       case pattern
       when P01_ISO8601_WITH_TZ then "ISO8601_WITH_TZ"
       when P02_ISO8601_ZULU then "ISO8601_ZULU"
       when P03_ISO8601_SPACE_WITH_OFFSET then "ISO8601_SPACE_WITH_OFFSET"
+      when P04A_12HR_WITH_TZ then "12HR_WITH_TZ"
       when P04_ISO8601_SPACE then "ISO8601_SPACE"
       when P05_PRETTY1_12HR then "PRETTY1_12HR"
       when P06_PRETTY2_24HR then "PRETTY2_24HR"
@@ -126,25 +85,18 @@ module Zone
       when P09_RELATIVE_TIME then "RELATIVE_TIME"
       when P10_GIT_LOG then "GIT_LOG"
       when P11_DATE_COMMAND then "DATE_COMMAND"
+      when P12_COMPACT_DATE then "COMPACT_DATE"
       else "UNKNOWN"
       end
     end
 
-    #
-    # Validate that a matched string is actually a timestamp.
-    #
     private def self.valid_timestamp?(str : String, pattern : Regex) : Bool
       return valid_unix?(str) if pattern == P08_UNIX_TIMESTAMP
       true
     end
 
-    #
-    # Validate unix timestamp is in reasonable range.
-    #
     private def self.valid_unix?(str : String) : Bool
       int = str.to_i64
-      # Range: 2001-09-09 (first 10-digit) to 2036-07-11 (11 years ahead)
-      # This avoids false positives from phone numbers, order IDs, etc.
       int >= 1_000_000_000 && int <= 2_100_000_000
     end
   end

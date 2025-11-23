@@ -18,58 +18,37 @@ module Zone
     end
 
     private def self.parse_string(input : String) : Time
-      # Try unix timestamp
-      if input.matches?(/^[0-9\.]+$/)
-        return parse_unix(input)
-      end
+      return parse_unix(input) if input.matches?(/^[0-9]{10,}(?:\.[0-9]+)?$/)
 
-      # Try relative time
       if match = input.match(/^(?<amount>[0-9\.]+) (?<unit>second|minute|hour|day|week|month|year|decade)s? (?<direction>ago|from now)$/)
         return parse_relative(match)
       end
 
-      # Try git log format
       if match = input.match(/^(?<dow>[A-Z][a-z]{2}) (?<mon>[A-Z][a-z]{2}) (?<day>\d{1,2}) (?<time>\d{2}:\d{2}:\d{2}) (?<year>\d{4}) (?<offset>[+-]\d{4})$/)
         return parse_git_log(match)
       end
 
-      # Try date command format with zone name
       if match = input.match(/^(?<dow>[A-Z][a-z]{2}) (?<mon>[A-Z][a-z]{2}) (?<day>\d{1,2}) (?<time>\d{2}:\d{2}:\d{2}) (?<zone>\w+) (?<year>\d{4})$/)
         return parse_date_command(match)
       end
 
-      # Try date-only with timezone offset (e.g., "1901-01-01+19:07Z")
+      if match = input.match(/^(?<date>\d{4}-\d{2}-\d{2}) (?<hour>\d{1,2}):(?<min>\d{2}):(?<sec>\d{2}) (?<ampm>[AP]M) (?<zone>\w+)$/)
+        return parse_12hour_with_zone(match)
+      end
+
+      if match = input.match(/^(?<year>19[7-9]\d|20\d{2})(?<month>0[1-9]|1[0-2])(?<day>0[1-9]|[12]\d|3[01])$/)
+        return Time.parse("#{match["year"]}-#{match["month"]}-#{match["day"]}", "%Y-%m-%d", Time::Location.local) rescue nil
+      end
+
       if match = input.match(/^(\d{4}-\d{2}-\d{2})([\+\-]\d{2}:\d{2})Z?$/)
-        date_part = match[1]
-        offset_part = match[2]
-        begin
-          return Time.parse("#{date_part}T00:00:00#{offset_part}", "%Y-%m-%dT%H:%M:%S%:z", Time::Location::UTC)
-        rescue
-        end
+        return Time.parse("#{match[1]}T00:00:00#{match[2]}", "%Y-%m-%dT%H:%M:%S%:z", Time::Location::UTC) rescue nil
       end
 
-      # Try standard parsing methods
-      begin
-        return Time.parse_rfc3339(input)
-      rescue
-      end
-
-      begin
-        return Time.parse_iso8601(input)
-      rescue
-      end
-
-      begin
-        return Time.parse(input, "%Y-%m-%d %H:%M:%S %z", Time::Location::UTC)
-      rescue
-      end
-
-      begin
-        return Time.parse(input, "%Y-%m-%d %H:%M:%S", Time::Location.local)
-      rescue
-      end
-
-      raise ArgumentError.new("Could not parse time '#{input}'")
+      (Time.parse_rfc3339(input) rescue nil) ||
+        (Time.parse_iso8601(input) rescue nil) ||
+        (Time.parse(input, "%Y-%m-%d %H:%M:%S %z", Time::Location::UTC) rescue nil) ||
+        (Time.parse(input, "%Y-%m-%d %H:%M:%S", Time::Location.local) rescue nil) ||
+        raise ArgumentError.new("Could not parse time '#{input}'")
     end
 
     def initialize(@time : Time, @zone : String? = nil)
@@ -115,7 +94,6 @@ module Zone
     end
 
     def to_pretty(style : Int32 = 1) : String
-      # Get zone abbreviation (e.g., "EST") instead of location name
       zone_abbr = @time.zone.name || @time.location.name
 
       case style
@@ -130,6 +108,26 @@ module Zone
         "#{base} #{zone_abbr}"
       else
         raise ArgumentError.new("Invalid pretty style '#{style}' (must be 1, 2, or 3)")
+      end
+    end
+
+    private def self.load_timezone(name : String) : Time::Location
+      case name
+      when "UTC" then Time::Location::UTC
+      when "Local" then Time::Location.local
+      else
+        Time::Location.load(name) rescue Time::Location::UTC
+      end
+    end
+
+    private def self.convert_to_24hour(hour : Int32, meridiem : String) : Int32
+      case meridiem
+      when "PM"
+        hour == 12 ? 12 : hour + 12
+      when "AM"
+        hour == 12 ? 0 : hour
+      else
+        hour
       end
     end
 
@@ -180,46 +178,23 @@ module Zone
     end
 
     private def self.parse_git_log(match_data : Regex::MatchData) : Time
-      # Git log format: "Fri Nov 14 14:54:35 2025 -0500"
-      # Reorder to parseable format: "Fri Nov 14 14:54:35 -0500 2025"
-      dow = match_data["dow"]
-      mon = match_data["mon"]
-      day = match_data["day"]
-      time = match_data["time"]
-      year = match_data["year"]
-      offset = match_data["offset"]
-
-      reordered = "#{dow} #{mon} #{day} #{time} #{offset} #{year}"
+      reordered = "#{match_data["dow"]} #{match_data["mon"]} #{match_data["day"]} " \
+                  "#{match_data["time"]} #{match_data["offset"]} #{match_data["year"]}"
       Time.parse(reordered, "%a %b %d %H:%M:%S %z %Y", Time::Location::UTC)
     end
 
     private def self.parse_date_command(match_data : Regex::MatchData) : Time
-      # Date command format: "Wed Nov 12 19:13:17 UTC 2025"
-      dow = match_data["dow"]
-      mon = match_data["mon"]
-      day = match_data["day"]
-      time = match_data["time"]
-      zone_name = match_data["zone"]
-      year = match_data["year"]
-
-      # Load the timezone
-      location = case zone_name
-      when "UTC"
-        Time::Location::UTC
-      when "Local"
-        Time::Location.local
-      else
-        begin
-          Time::Location.load(zone_name)
-        rescue
-          # If zone is not recognized, assume UTC
-          Time::Location::UTC
-        end
-      end
-
-      # Parse without zone first, then set location
-      time_str = "#{dow} #{mon} #{day} #{time} #{year}"
+      location = load_timezone(match_data["zone"])
+      time_str = "#{match_data["dow"]} #{match_data["mon"]} #{match_data["day"]} " \
+                 "#{match_data["time"]} #{match_data["year"]}"
       Time.parse(time_str, "%a %b %d %H:%M:%S %Y", location)
+    end
+
+    private def self.parse_12hour_with_zone(match_data : Regex::MatchData) : Time
+      hour_24 = convert_to_24hour(match_data["hour"].to_i, match_data["ampm"])
+      location = load_timezone(match_data["zone"])
+      time_str = "#{match_data["date"]} #{hour_24.to_s.rjust(2, '0')}:#{match_data["min"]}:#{match_data["sec"]}"
+      Time.parse(time_str, "%Y-%m-%d %H:%M:%S", location)
     end
   end
 end
