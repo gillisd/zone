@@ -7,7 +7,7 @@ module Zone
       time = if input.is_a?(Time)
         input
       elsif input.is_a?(String)
-        parse_string(input)
+        TimestampParser.parse(input)
       else
         raise ArgumentError.new("Could not parse time '#{input}'")
       end
@@ -15,23 +15,6 @@ module Zone
       new(time)
     rescue ex
       raise ArgumentError.new("Could not parse time '#{input}'")
-    end
-
-    private def self.parse_string(input : String) : Time
-      TimestampPatterns.pattern_instances.each do |pattern|
-        next unless pattern.matches?(input)
-        next unless pattern.valid?(input)
-
-        if time = pattern.parse(input)
-          return time
-        end
-      end
-
-      (Time.parse_rfc3339(input) rescue nil) ||
-        (Time.parse_iso8601(input) rescue nil) ||
-        (Time.parse(input, "%Y-%m-%d %H:%M:%S %z", Time::Location::UTC) rescue nil) ||
-        (Time.parse(input, "%Y-%m-%d %H:%M:%S", Time::Location.local) rescue nil) ||
-        raise ArgumentError.new("Could not parse time '#{input}'")
     end
 
     def initialize(@time : Time, @zone : String? = nil)

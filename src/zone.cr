@@ -2,6 +2,8 @@ require "./zone/version"
 require "./zone/field_mapping"
 require "./zone/field_line"
 require "./zone/timestamp_pattern"
+require "./zone/timestamp_patterns"
+require "./zone/timestamp_parser"
 require "./zone/timestamp"
 require "./zone/cli"
 
