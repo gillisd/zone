@@ -114,11 +114,36 @@ module Zone
     end
 
     def parse(input : String) : Time?
-      nil # Handled by fallback parsing
+      if match = input.match(/^(?<mon>[A-Z][a-z]{2}) (?<day>\d{2}), (?<year>\d{4}) - \s?(?<hour>\d{1,2}):(?<min>\d{2}) (?<ampm>[AP]M) (?<zone>[A-Z]{3,4})$/)
+        hour_24 = convert_to_24hour(match["hour"].to_i, match["ampm"])
+        location = load_timezone(match["zone"])
+        time_str = "#{match["mon"]} #{match["day"]} #{match["year"]} #{hour_24.to_s.rjust(2, '0')}:#{match["min"]}:00"
+        Time.parse(time_str, "%b %d %Y %H:%M:%S", location) rescue nil
+      end
     end
 
     def name : String
       "PRETTY1_12HR"
+    end
+
+    private def load_timezone(name : String) : Time::Location
+      case name
+      when "UTC" then Time::Location::UTC
+      when "Local" then Time::Location.local
+      else
+        Time::Location.load(name) rescue Time::Location::UTC
+      end
+    end
+
+    private def convert_to_24hour(hour : Int32, meridiem : String) : Int32
+      case meridiem
+      when "PM"
+        hour == 12 ? 12 : hour + 12
+      when "AM"
+        hour == 12 ? 0 : hour
+      else
+        hour
+      end
     end
   end
 
@@ -128,11 +153,24 @@ module Zone
     end
 
     def parse(input : String) : Time?
-      nil # Handled by fallback parsing
+      if match = input.match(/^(?<mon>[A-Z][a-z]{2}) (?<day>\d{2}), (?<year>\d{4}) - (?<hour>\d{2}):(?<min>\d{2}) (?<zone>[A-Z]{3,4})$/)
+        location = load_timezone(match["zone"])
+        time_str = "#{match["mon"]} #{match["day"]} #{match["year"]} #{match["hour"]}:#{match["min"]}:00"
+        Time.parse(time_str, "%b %d %Y %H:%M:%S", location) rescue nil
+      end
     end
 
     def name : String
       "PRETTY2_24HR"
+    end
+
+    private def load_timezone(name : String) : Time::Location
+      case name
+      when "UTC" then Time::Location::UTC
+      when "Local" then Time::Location.local
+      else
+        Time::Location.load(name) rescue Time::Location::UTC
+      end
     end
   end
 
@@ -142,11 +180,24 @@ module Zone
     end
 
     def parse(input : String) : Time?
-      nil # Handled by fallback parsing
+      if match = input.match(/^(?<date>\d{4}-\d{2}-\d{2}) (?<time>\d{2}:\d{2}) (?<zone>[A-Z]{3,4})$/)
+        location = load_timezone(match["zone"])
+        time_str = "#{match["date"]} #{match["time"]}:00"
+        Time.parse(time_str, "%Y-%m-%d %H:%M:%S", location) rescue nil
+      end
     end
 
     def name : String
       "PRETTY3_ISO"
+    end
+
+    private def load_timezone(name : String) : Time::Location
+      case name
+      when "UTC" then Time::Location::UTC
+      when "Local" then Time::Location.local
+      else
+        Time::Location.load(name) rescue Time::Location::UTC
+      end
     end
   end
 
