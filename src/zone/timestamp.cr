@@ -3,18 +3,15 @@ module Zone
     property time : Time
     property zone : String?
 
-    def self.parse(input : String | Time) : Timestamp
-      time = if input.is_a?(Time)
-        input
-      elsif input.is_a?(String)
-        TimestampParser.parse(input)
-      else
-        raise ArgumentError.new("Could not parse time '#{input}'")
-      end
-
+    def self.parse(input : String) : Timestamp
+      time = TimestampParser.parse(input)
       new(time)
     rescue ex
       raise ArgumentError.new("Could not parse time '#{input}'")
+    end
+
+    def self.parse(input : Time) : Timestamp
+      new(input)
     end
 
     def initialize(@time : Time, @zone : String? = nil)
