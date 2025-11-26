@@ -437,5 +437,111 @@ describe Zone::TimestampPattern do
         time.should be_a(Time)
       end
     end
+
+    describe "Quote handling" do
+      it "matches timestamp inside double quotes" do
+        pattern = Zone::ISO8601ZuluPattern.new
+        # Word boundary \b matches between quote and digit
+        pattern.matches?("\"2025-01-15T10:30:00Z\"").should be_true
+      end
+
+      it "matches timestamp inside single quotes" do
+        pattern = Zone::ISO8601WithTzPattern.new
+        pattern.matches?("'2025-01-15T10:30:00+09:00'").should be_true
+      end
+
+      it "matches unix timestamp inside quotes" do
+        pattern = Zone::UnixTimestampPattern.new
+        pattern.matches?("\"1736937000\"").should be_true
+      end
+
+      it "matches timestamp in quoted CSV field" do
+        pattern = Zone::ISO8601ZuluPattern.new
+        pattern.matches?("name,\"2025-01-15T10:30:00Z\",value").should be_true
+      end
+
+      it "matches compact date inside quotes" do
+        pattern = Zone::CompactDatePattern.new
+        pattern.matches?("\"20251121\"").should be_true
+      end
+
+      it "matches git log format inside quotes" do
+        pattern = Zone::GitLogPattern.new
+        pattern.matches?("\"Mon Jan 15 10:30:00 2025 +0000\"").should be_true
+      end
+
+      it "matches date command format inside quotes" do
+        pattern = Zone::DateCommandPattern.new
+        pattern.matches?("\"Mon Jan 15 10:30:00 EST 2025\"").should be_true
+      end
+
+      it "matches 12-hour format inside quotes" do
+        pattern = Zone::TwelveHourWithTzPattern.new
+        pattern.matches?("\"2025-01-15 03:54:41 PM EST\"").should be_true
+      end
+    end
+  end
+end
+
+describe Zone::TimestampPatterns do
+  describe ".replace_all quote preservation" do
+    it "preserves double quotes around ISO8601 timestamp" do
+      result = Zone::TimestampPatterns.replace_all("\"2025-01-15T10:30:00Z\"") do |match, _|
+        "REPLACED"
+      end
+      result.should eq("\"REPLACED\"")
+    end
+
+    it "preserves single quotes around ISO8601 timestamp" do
+      result = Zone::TimestampPatterns.replace_all("'2025-01-15T10:30:00+09:00'") do |match, _|
+        "REPLACED"
+      end
+      result.should eq("'REPLACED'")
+    end
+
+    it "preserves quotes around unix timestamp" do
+      result = Zone::TimestampPatterns.replace_all("\"1736937000\"") do |match, _|
+        "REPLACED"
+      end
+      result.should eq("\"REPLACED\"")
+    end
+
+    it "preserves quotes in CSV field context" do
+      result = Zone::TimestampPatterns.replace_all("name,\"2025-01-15T10:30:00Z\",value") do |match, _|
+        "REPLACED"
+      end
+      result.should eq("name,\"REPLACED\",value")
+    end
+
+    it "preserves multiple quoted timestamps" do
+      input = "\"2025-01-15T10:30:00Z\" and \"2025-01-16T11:00:00Z\""
+      result = Zone::TimestampPatterns.replace_all(input) do |match, _|
+        "REPLACED"
+      end
+      result.should eq("\"REPLACED\" and \"REPLACED\"")
+    end
+
+    it "preserves quotes around non-timestamp content" do
+      input = "\"not a timestamp\" but \"2025-01-15T10:30:00Z\" is"
+      result = Zone::TimestampPatterns.replace_all(input) do |match, _|
+        "REPLACED"
+      end
+      result.should eq("\"not a timestamp\" but \"REPLACED\" is")
+    end
+
+    it "handles mixed quoted and unquoted timestamps" do
+      input = "2025-01-15T10:30:00Z and \"2025-01-16T11:00:00Z\""
+      result = Zone::TimestampPatterns.replace_all(input) do |match, _|
+        "REPLACED"
+      end
+      result.should eq("REPLACED and \"REPLACED\"")
+    end
+
+    it "preserves quotes around compact date" do
+      result = Zone::TimestampPatterns.replace_all("\"20251121\"") do |match, _|
+        "REPLACED"
+      end
+      result.should eq("\"REPLACED\"")
+    end
   end
 end
