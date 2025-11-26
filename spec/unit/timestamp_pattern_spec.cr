@@ -278,6 +278,45 @@ describe Zone::TimestampPattern do
     end
   end
 
+  describe "ISO8601SpaceWithTzPattern" do
+    pattern = Zone::ISO8601SpaceWithTzPattern.new
+
+    it "returns correct name" do
+      pattern.name.should eq("ISO8601_SPACE_WITH_TZ")
+    end
+
+    it "matches space-separated ISO8601 with UTC suffix" do
+      pattern.matches?("2025-01-15 10:30:00 UTC").should be_true
+    end
+
+    it "matches space-separated ISO8601 with EST suffix" do
+      pattern.matches?("2025-01-15 10:30:00 EST").should be_true
+    end
+
+    it "matches space-separated ISO8601 with PST suffix" do
+      pattern.matches?("2025-01-15 10:30:00 PST").should be_true
+    end
+
+    it "parses UTC time correctly" do
+      time = pattern.parse("2025-01-15 10:30:00 UTC")
+      time.should be_a(Time)
+      time.not_nil!.year.should eq(2025)
+      time.not_nil!.month.should eq(1)
+      time.not_nil!.day.should eq(15)
+      time.not_nil!.hour.should eq(10)
+      time.not_nil!.minute.should eq(30)
+      # Verify it's actually UTC - converting to UTC should not change the time
+      time.not_nil!.to_utc.hour.should eq(10)
+    end
+
+    it "parses EST time correctly" do
+      time = pattern.parse("2025-01-15 10:30:00 EST")
+      time.should be_a(Time)
+      # EST is UTC-5, so 10:30 EST = 15:30 UTC
+      time.not_nil!.to_utc.hour.should eq(15)
+    end
+  end
+
   describe "DateWithOffsetPattern" do
     pattern = Zone::DateWithOffsetPattern.new
 

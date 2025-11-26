@@ -23,6 +23,7 @@ module Zone
         ISO8601ZuluPattern.new,
         ISO8601SpaceWithOffsetPattern.new,
         TwelveHourWithTzPattern.new,
+        ISO8601SpaceWithTzPattern.new,
         ISO8601SpacePattern.new,
         Pretty1TwelveHourPattern.new,
         Pretty2TwentyFourHourPattern.new,

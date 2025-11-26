@@ -96,7 +96,7 @@ module Zone
 
   class ISO8601SpacePattern < TimestampPattern
     def pattern : Regex
-      /\b\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?(?! [+-]\d| [AP]M)/
+      /\b\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?(?! [+-]\d| [AP]M| [A-Z]{3,4}\b)/
     end
 
     def parse(input : String) : Time?
@@ -105,6 +105,34 @@ module Zone
 
     def name : String
       "ISO8601_SPACE"
+    end
+  end
+
+  class ISO8601SpaceWithTzPattern < TimestampPattern
+    def pattern : Regex
+      /\b\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)? [A-Z]{3,4}\b/
+    end
+
+    def parse(input : String) : Time?
+      if match = input.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?) ([A-Z]{3,4})$/)
+        datetime_str = match[1]
+        tz_abbrev = match[2]
+        location = load_timezone(tz_abbrev)
+        Time.parse(datetime_str, "%Y-%m-%d %H:%M:%S", location) rescue nil
+      end
+    end
+
+    def name : String
+      "ISO8601_SPACE_WITH_TZ"
+    end
+
+    private def load_timezone(name : String) : Time::Location
+      case name
+      when "UTC" then Time::Location::UTC
+      when "Local" then Time::Location.local
+      else
+        Time::Location.load(name) rescue Time::Location::UTC
+      end
     end
   end
 
